@@ -84,15 +84,15 @@ bin<-bin[exclusion_logical,]
 
 ##Statistics
 #lets first look at the distribution of qantiles
-act.mdl<-lm(median_activity ~ group+I(time_mdl^4)+I(time_mdl^2),data=bin)#this is a linear model with a poly fit for time
+act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
 summary(act.mdl)
-vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400),jitter=1)
+vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400))
 ##Plot
 ggplot(filter(vis$fit, group == 1), aes(time_mdl, visregFit))+
-  geom_boxplot(data=filter(a$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill="deepskyblue",outlier.shape = NA)+
-  geom_boxplot(data=filter(a$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="sienna1",outlier.shape = NA)+
-  #geom_point(data=filter(a$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='blue')+
-  #geom_point(data=filter(a$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='red')+
+  geom_boxplot(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill="deepskyblue",outlier.shape = NA)+
+  geom_boxplot(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="sienna1",outlier.shape = NA)+
+  #geom_point(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='blue')+
+  #geom_point(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='red')+
   geom_line(colour='blue', size=1)+
   geom_ribbon(aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
   geom_line(data=filter(vis$fit, group == 2),colour='red', size=1)+
