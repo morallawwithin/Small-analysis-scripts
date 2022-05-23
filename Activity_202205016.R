@@ -29,6 +29,11 @@ Group1 <- c("3_220401","4_220401","5_220401","7_220401","2_220404","3_220404","6
 group_bin<-as.integer(data$Box %in% Group1)+1
 data$group<-as.factor(group_bin)
 
+#set sex
+male_date<-c("01/04/2022","04/04/2022","16/05/2022")
+sex_bin<-rep("female",length(group_bin))
+sex_bin[data$ï..Date %in% male_date]<-"male"
+
 #set Up the data container (bin)
 n_min = 1
 diff_activity_bin <- data$DistD
@@ -40,7 +45,8 @@ diff_activity = diff_activity_bin,
 time =as.POSIXlt(time_bin, tz="", tryFormats = "%H:%M:%OS" ),
 time_disp=time_bin,
 name =name_bin,
-group = as.factor(group_bin))
+group = as.factor(group_bin),
+sex =as.factor(sex_bin))
 
 #generate timestamps every interval min
 start <- as.POSIXct("00:00:00",tryFormats = "%H:%M:%OS")
@@ -78,7 +84,7 @@ bin<-bin[exclusion_logical,]
 ggplot(bin, aes(x=time_disp, y=median_activity, fill=group)) +
    ylim(0,300)+
    geom_boxplot(position = position_dodge(0.5))+
-  #geom_jitter(shape=5, position=position_jitter(0.2))#+
+  geom_jitter(shape=5, position=position_jitter(0.2))#+
   #geom_col(x=bin$time_disp, y=bin$median_activity)+
   theme(aspect.ratio = 9/16)
 #ggsave(file="median_activity_exclude8h.pdf", dpi=300, scale= 3)
@@ -87,7 +93,7 @@ ggplot(bin, aes(x=time_disp, y=median_activity, fill=group)) +
 #lets first look at the distribution of qantiles
 qqp(bin$median_activity, "norm")#this looks like it does not fit at all
 qqp(bin$median_activity, "lnorm")#this looks a little bit better, therefore we will use: link = "log"
-summary(glmmPQL(median_activity ~ group, ~1 | name/time_disp, family = gaussian(link = "log"),data=bin,start=c(0,1)))#this iterates a linear model with random effects (subjects(=name) and our beloved time(=time_cycle) )
+summary(glmmPQL(median_activity ~ group*time_disp, ~1 | name, family = gaussian(link = "log"),data=bin,start=rep(0,times=48)))#this iterates a linear model with random effects (subjects(=name) and our beloved time(=time_cycle) )
 #a<-lmer(median_activity ~ group + (1 | name) +(1 |time_disp), data=bin,start=c(0,1), REML = F)
 #summary(a)
 #anova(a)
