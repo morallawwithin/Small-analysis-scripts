@@ -1,11 +1,8 @@
 library(tidyverse)
 library(readr)
 library (plyr)
-#library(rstatix)
-library(car)
-library(MASS)
-#library(lme4)
-#library(lmerTest)
+library(visreg)
+
 
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice") #adjust working directory
 data1 <- read.csv("Phenomaster_20220401.csv", header=TRUE)#adjust file
@@ -73,6 +70,7 @@ bin$any_activity <- any_acitivity_bin
 #plot data at timestamps
 bin <-bin[time_logical,]#this deletes all non interval timepoints (nothing of value is lost)
 bin$time_disp <- as.factor (bin$time_disp)#need this for plotting and testing
+bin$time_mdl<-cos((as.integer(bin$time_disp)-8)/12*pi)
 bin$time_mdl<-as.integer(bin$time_disp)
 #Exclusion of the first 8 intervals,just delete this section if you want to analyze the full data
 exclusion<-split(seq_along(bin$name),bin$name)
@@ -86,20 +84,21 @@ bin<-bin[exclusion_logical,]
 
 ##Statistics
 #lets first look at the distribution of qantiles
-qqp(bin$median_activity, "norm")#this looks like it does not fit at all
-qqp(bin$median_activity, "lnorm")#this looks a little bit better, therefore we will use: link = "log"
-mix.eff.mdl<-glmmPQL(median_activity ~ group*time_mdl, ~1 | name, family = gaussian(link = "log"),data=bin,start=rep(0,times=4))#this iterates a linear model with random effects (subjects(=name) and our beloved time(=time_cycle) )
-summary(mix.eff.mdl)
-#a<-lmer(median_activity ~ group + (1 | name) +(1 |time_disp), data=bin,start=c(0,1), REML = F)
-#anova(a)
+act.mdl<-lm(median_activity ~ group+I(time_mdl^4)+I(time_mdl^2),data=bin)#this is a linear model with a poly fit for time
+summary(act.mdl)
+vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400),jitter=1)
 ##Plot
-ggplot(bin, aes(x=time_disp, y=median_activity, fill=group)) +
-  ylim(0,300)+
-  geom_boxplot(position = position_dodge(0.5))+
-  geom_line(aes(y=predict(mix.eff.mdl), group=group))+
-  #geom_jitter(shape=5, position=position_jitter(0.2))#+
-  #geom_col(x=bin$time_disp, y=bin$median_activity)+
-  theme(aspect.ratio = 9/16)
+ggplot(filter(vis$fit, group == 1), aes(time_mdl, visregFit))+
+  geom_boxplot(data=filter(a$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill="deepskyblue",outlier.shape = NA)+
+  geom_boxplot(data=filter(a$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="sienna1",outlier.shape = NA)+
+  #geom_point(data=filter(a$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='blue')+
+  #geom_point(data=filter(a$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='red')+
+  geom_line(colour='blue', size=1)+
+  geom_ribbon(aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
+  geom_line(data=filter(vis$fit, group == 2),colour='red', size=1)+
+  geom_ribbon(data=filter(vis$fit, group == 2),aes(ymin=visregLwr, ymax=visregUpr), fill='red',alpha=.3)+
+  ylim(-10,200)
+  
 #ggsave(file="median_activity_exclude8h.pdf", dpi=300, scale= 3)
 
 #Violin Plot of all activity
