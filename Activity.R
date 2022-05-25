@@ -26,11 +26,6 @@ Group1 <- c("3_220401","4_220401","5_220401","7_220401","2_220404","3_220404","6
 group_bin<-as.integer(data$Box %in% Group1)+1
 data$group<-as.factor(group_bin)
 
-#set sex
-male_date<-c("01/04/2022","04/04/2022","16/05/2022")
-sex_bin<-rep("female",length(group_bin))
-sex_bin[data$ï..Date %in% male_date]<-"male"
-
 #set Up the data container (bin)
 n_min = 1
 diff_activity_bin <- data$DistD
@@ -42,8 +37,8 @@ diff_activity = diff_activity_bin,
 time =as.POSIXlt(time_bin, tz="", tryFormats = "%H:%M:%OS" ),
 time_disp=time_bin,
 name =name_bin,
-group = as.factor(group_bin),
-sex =as.factor(sex_bin))
+group = as.factor(group_bin)
+)
 
 #generate timestamps every interval min
 start <- as.POSIXct("00:00:00",tryFormats = "%H:%M:%OS")
@@ -84,6 +79,7 @@ bin<-bin[exclusion_logical,]
 
 ##Statistics
 #lets first look at the distribution of qantiles
+act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
 act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
 summary(act.mdl)
 vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400))
