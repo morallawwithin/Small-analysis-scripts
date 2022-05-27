@@ -2,6 +2,7 @@ library(tidyverse)
 library(readr)
 library (plyr)
 library(visreg)
+library(egg)
 
 
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice") #adjust working directory
@@ -82,8 +83,8 @@ bin<-bin[exclusion_logical,]
 
 ##Statistics
 #lets first look at the distribution of qantiles
-act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
-act.mdl<-lm(median_activity ~ group*cos(2*pi*time_mdl/24),data=bin)#this is a linear model with a poly fit for time
+act.mdl<-lm(median_activity ~ group*cos(2*pi*time_mdl/24)+I(time_mdl^2),data=bin)#this is a linear model with a poly fit for time
+act.mdl<-lm(median_activity ~ group*cos(2*pi*time_mdl/24),data=bin)#this is a linear model with a cos fit for time
 summary(act.mdl)
 vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400))
 ##Plot
@@ -96,7 +97,11 @@ a<-ggplot(filter(vis$fit, group == 1), aes(time_mdl, visregFit))+
   geom_ribbon(aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
   geom_line(data=filter(vis$fit, group == 2),colour='red', size=1)+
   geom_ribbon(data=filter(vis$fit, group == 2),aes(ymin=visregLwr, ymax=visregUpr), fill='red',alpha=.3)+
+  labs(y = "Median Distance per h [cm]")+
+  labs(x="Time of Day")+
+  scale_x_continuous(breaks=c(4,8,12,16,20,24), labels=c("4:00","8:00","12:00","16:00","20:00","24:00"),limits=c(0.5,24.5))+
   ylim(-10,200)
+  
 
 #Food and Drink
 
@@ -130,3 +135,5 @@ f<-ggplot(data.metabolics,aes(x=group,y=drink, fill=group))+
   labs(y = "Water Intake per day [ml]")+
   labs(x="")+
   theme(legend.position = "none")
+b<-ggarrange(f,d,ncol=1)
+ggarrange(a,b,ncol=2,widths=c(0.8,0.2))
