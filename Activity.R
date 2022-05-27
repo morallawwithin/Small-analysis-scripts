@@ -80,7 +80,7 @@ bin<-bin[exclusion_logical,]
 ##Statistics
 #lets first look at the distribution of qantiles
 act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
-act.mdl<-lm(median_activity ~ group*(I(time_mdl^4)+I(time_mdl^2)),data=bin)#this is a linear model with a poly fit for time
+act.mdl<-lm(median_activity ~ group*cos(2*pi*time_mdl/24),data=bin)#this is a linear model with a poly fit for time
 summary(act.mdl)
 vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400))
 ##Plot
