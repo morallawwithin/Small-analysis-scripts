@@ -11,7 +11,7 @@ colnames(data)<-c("t","V")
 data$time<-seq_along(data$t)
 a<-ggplot(data,aes(x=time,y=V))+
   geom_line(lwd=1)+
-  ylim(c(-4e-04,4e-04))+ #this limits the y axis to -400 tp 400 µV
+  ylim(c(-4e-04,4e-04))+ #this limits the y axis from -400 to 400 µV
   theme_half_open()+
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
