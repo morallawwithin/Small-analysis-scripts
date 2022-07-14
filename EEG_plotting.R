@@ -1,8 +1,8 @@
 library(tidyverse)
 library(cowplot)
-
+#set your working directory
 setwd("G:/Arbeit/EEG")
-#now lets read all .txt files in this folder (they shoukld contain the raw values of the EEG)
+#now lets read all .txt files in the following folder (they should contain the exported raw values of the EEG)
 filenames <- list.files("G:/Arbeit/EEG", pattern="*.txt", full.names=TRUE)
 #this plots all files and saves a .svg image of them
 lapply(filenames, function(x){
