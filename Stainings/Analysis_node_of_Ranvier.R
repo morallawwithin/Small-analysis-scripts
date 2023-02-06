@@ -12,12 +12,13 @@ ggplot(df_k, aes(position,Line_Intensity, colour=staining))+
   geom_smooth(method=lm)
 df_k<-filter(df, staining=="anti-kv1.2")
 df_c<-filter(df, staining=="anti-caspr")
-
-df_knr<-filter(df_k,number==394)
+kcna2<-sapply(unique(df$number), function(x){
+df_knr<-filter(df_k,number==x)
 df_k0nr<-filter(df_k,Line_Intensity>median(df_knr$Line_Intensity))
-modetest(df_k0nr$position)
-locmodes(df_k0nr$position,mod0=2,display=TRUE)
+locmodes(df_k0nr$position,mod0=2,display=TRUE)})
+names(kcna2[,1:length(unique(df$number))])<-unique(df$number)
 
-df_cnr<-filter(df_c,number==394)
+caspr<-sapply(unique(df$number), function(x){
+df_cnr<-filter(df_c,number==x)
 df_c0nr<-filter(df_c,Line_Intensity>median(df_cnr$Line_Intensity))
-locmodes(df_c0nr$position,mod0=2,display=TRUE)
+locmodes(df_c0nr$position,mod0=2,display=TRUE)})
