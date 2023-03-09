@@ -2,6 +2,7 @@ library(tidyverse)
 library(multimode)
 library(lme4)
 library(lmerTest)
+library(cowplot)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/Caspr1-Kcna2-staining")
 df <-
   list.files(path = "D:/Peter/Analysis/KCNA2/P405L_Mice/Caspr1-Kcna2-staining", pattern = "*.csv") %>% 
@@ -9,6 +10,7 @@ df <-
 df$position<-rep(1:351,length(df$Line_Intensity)/351)/35.1
 df$Genotype<-as.factor(df$Genotype)
 df$staining<-as.factor(df$staining)
+df<-filter(df,Line_Intensity>0)
 
 df_k<-filter(df, staining=="anti-kv1.2")
 
@@ -17,9 +19,9 @@ o<-stack(sapply(unique(df_k$imagename),function(x){
 }))
 df_k$Line_Intensity<-o$values
 
-#df_k$Line_Intensity<-(df_k$Line_Intensity-mean(df_k$Line_Intensity))/sd(df_k$Line_Intensity)
 
-####Playing
+
+####Playing around, don't use
 df_kz<-filter(df_k,Line_Intensity>0)
 df_kz$position<-as.factor(df_kz$position)
 ggplot(filter(df_kz,df_kz$Genotype=="Kcna2 +/+"), aes(position,Line_Intensity))+
@@ -47,24 +49,43 @@ df_k$nodeid<-paste(df_k$imagename,df_k$pointsno, sep = "_")
 
 nod<-sapply(unique(df_k$nodeid), function(x){
   df_kn<-filter(df_k,nodeid==x)
-  sum(as.numeric(any(df_kn$Line_Intensity>1&df_kn$position<5)),as.numeric(any(df_kn$Line_Intensity>1&df_kn$position>5)))
+  sum(as.numeric(any(df_kn$Line_Intensity>1.5&df_kn$position<5)),as.numeric(any(df_kn$Line_Intensity>1.5&df_kn$position>5)))
 })
 nodes<-data.frame("animal"=as.factor(df_k$number[match(unique(df_k$nodeid),df_k$nodeid)]), 
                   "Genotype"=as.factor(df_k$Genotype[match(unique(df_k$nodeid),df_k$nodeid)]),
                   "nodes_nr"=nod)
-ggplot(nodes,aes(Genotype,nodes_nr,color=Genotype))+
+a<-ggplot(nodes,aes(Genotype,nodes_nr,color=Genotype,fill=Genotype))+
   geom_violin()+
   geom_jitter(height=0)+
   scale_color_manual(values = c("black","blue")) +
-  ylab("Kv1.2 patches per node")
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
+  ylab("Kv1.2 patches per node")+
+  theme_half_open()+
+  theme(legend.position = "none")
 
-wilcox.test(nodes_nr~Genotype, data = nodes)
+ggsave(a, filename = "kcna2_patches_per_node.svg", height = 4, width=2)
+
+wilcox.test(nodes_nr~Genotype, data = nodes, correct = FALSE)
+node_model<-lmer(nodes_nr~Genotype+(1|animal), data=nodes)
+summary(node_model)
 #plot
-df_kn<-filter(df_k,nodeid=="P405L_391_5.lif - 63x2_1")
+df_kn<-filter(df_k,nodeid=="P405L_366_3.lif - 63x3_1")
 ggplot(df_kn, aes(position,Line_Intensity))+
   geom_point()+
-  ylim(-3, 5)
-
+  ylim(-2, 6)+
+  xlab("Position [µm]")+
+  ylab("Intensity [z-score]")
+#figure examples
+#2 nodes
+df_kn<-filter(df_k,nodeid=="P405L_366_3.lif - 63x2_7")
+ggsave(filename ="P405L_366_3.lif - 63x2_7.svg", height = 1.5, width=4)
+#1 node
+df_kn<-filter(df_k,nodeid=="P405L_366_3.lif - 63x2_2")
+ggsave(filename ="P405L_366_3.lif - 63x2_2.svg", height = 1.5, width=4)
+#0 node
+df_kn<-filter(df_k,nodeid=="P405L_366_3.lif - 63x2_6")
+ggsave(filename ="P405L_366_3.lif - 63x2_5.svg", height = 1.5, width=4)
+#length
 len<-t(sapply(unique(df_k$nodeid), function(x){
   df_kn<-filter(df_k,nodeid==x)
   c(sum(df_kn$Line_Intensity>1&df_kn$position<5,na.rm=TRUE),sum(df_kn$Line_Intensity>1&df_kn$position>5,na.rm=TRUE))
