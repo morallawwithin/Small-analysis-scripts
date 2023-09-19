@@ -15,7 +15,7 @@ data.summary <- data %>%
 
 a<-ggplot(data.summary, aes(dos, eff,xmin=dos-sd.dos,xmax=dos+sd.dos,ymin=eff-sd.eff,ymax=eff+sd.eff,color=Drug,shape=Drug))+
   scale_shape_manual(values=1:nlevels(data$Drug))+
-  geom_point()+
+  geom_point(aes(size=20))+
   geom_errorbar()+
   geom_errorbarh()+
   theme_classic()+
@@ -35,10 +35,11 @@ data2.summary <- data2 %>%
   )       
 b<-ggplot(data2.summary, aes(dos, eff,xmin=dos-sd.dos,xmax=dos+sd.dos,ymin=eff-sd.eff,ymax=eff+sd.eff,color=Drug,shape=Drug))+
   scale_shape_manual(values=1:nlevels(data$Drug))+
-  geom_point()+
+  geom_point(aes(size=20))+
   geom_errorbar()+
   geom_errorbarh()+
   theme_classic()+
-  ylab(expression('shift of slow V'[0.5]*' [mV]'))+
-  xlab(expression('log'[10]*' concentration [M]'))
+  ylab(expression('shift of slow inactivation V'[0.5]*' [mV]'))+
+  xlab(expression('log'[10]*' concentration [M]'))+
+  scale_y_reverse()
 ggsave("D:/Peter/Dokumente/Review_INaP/slow.svg",b)
