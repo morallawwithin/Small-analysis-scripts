@@ -132,14 +132,9 @@ for ( i in 1:length(cellname)){
       }
 cond_norm<-cond/max(cond)
 tail_norm<-tail_curr/min(tail_curr)
-plot(volt,cond_norm)
 
-sweep<-data.frame("voltage"=volt, 
-                  "conductance"= cond_norm)
-activation <- function(g, Vhalf, k,c,V) (g/(1+exp((V-Vhalf)/k))+c)
-#model <- nls(conductance ~ activation(myg,myVhalf,myk,myc,voltage), data=sweep, start=list(myg=1,myVhalf=-25,myk=-10,myc=0),control = nls.control(maxiter = 400))
 
-#cell_values[s,3]<-coef(model)[2]
+#cell_values[s,4]<-coef(model)[2]
 cell_values_i[s,3]<-curr[10]}
 cell_values<-rbind(cell_values,cell_values_i)
 

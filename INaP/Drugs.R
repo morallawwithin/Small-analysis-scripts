@@ -20,7 +20,8 @@ a<-ggplot(data.summary, aes(dos, eff,xmin=dos-sd.dos,xmax=dos+sd.dos,ymin=eff-sd
   geom_errorbarh()+
   theme_classic()+
   ylab(expression('Inhibition of I'[NaP]*'[%]'))+
-  xlab(expression('log'[10]*' concentration [M]'))
+  xlab(expression('log'[10]*' concentration [M]'))+
+  theme(legend.position = "none")
 ggsave("D:/Peter/Dokumente/Review_INaP/ramp.svg",a)
 
 data2<-read_xlsx("D:/Peter/Dokumente/Review_INaP/inap.xlsx")
