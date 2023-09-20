@@ -97,19 +97,22 @@ cell15<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA2 WT/2022_4_11/",
 
 cell_values<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(cell_values)<-c("cell","amplitude","v1/2")
+cell_values_act<-data.frame(matrix(ncol = 3, nrow = 0))
+colnames(cell_values)<-c("cell","voltage","cond. norm.")
 cellname<-c(paste("cell0",c(1:9),sep=""),paste("cell",c(10:15),sep=""))
 cells<-list(cell01, cell02, cell03, cell04, cell05, cell06, cell07, cell08, cell09, cell10, cell11, cell12, cell13, cell14, cell15)
 for ( i in 1:length(cellname)){
   curr_cell<-cells[[i]]
   cell_values_i<-cbind(cellname[i],0,0)
   s<-1
+  sweepnr<-16
   data<-readABF(curr_cell[1,s])
-  cond<-rep(0, 16)
-  tail_curr<-rep(0, 16)
-  curr<-rep(0, 16)
-  volt<-(-8:7)*10
+  cond<-rep(0, sweepnr)
+  tail_curr<-rep(0, sweepnr)
+  curr<-rep(0, sweepnr)
+  volt<-10*(-8:7)
   
-  for (ii in 1:16){
+  for (ii in 1:sweepnr){
     sweep.data<-as.data.frame(data,sweep=ii)
     sweep.max<-sweep.data[c(500:5000),c(1,3)]
     curr[ii]<-max(sweep.max)
@@ -140,6 +143,10 @@ for ( i in 1:length(cellname)){
   cell_values_i[s,3]<-coef(model)[2]
   cell_values_i[s,2]<-curr[12]
   cell_values<-rbind(cell_values,cell_values_i)
-  
+  cell_values_act<-rbind(cell_values_act,
+                         cbind(rep(cellname[i],11),
+                               volt,
+                               cond_norm))
 }
 wt<-as.numeric(cell_values[,3])
+wt_act<-cell_values_act

@@ -105,6 +105,8 @@ cell8<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_06_20_0
 #curr_cell<-cell5
 cell_values<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(cell_values)<-c("cell","amplitude","v1/2")
+cell_values_act<-data.frame(matrix(ncol = 3, nrow = 0))
+colnames(cell_values)<-c("cell","voltage","cond. norm.")
 cells<-list(cell1,cell2,cell3,cell4,cell5,cell6,cell7,cell8)
 cellname<-c("cell1","cell2","cell3","cell4","cell5","cell6","cell7","cell8")
 for ( i in 1:length(cellname)){
@@ -144,9 +146,13 @@ for ( i in 1:length(cellname)){
       geom_line() +
       geom_point(data=sweep,aes(x=voltage,y=conductance))+
       theme_classic())
-    
+  cell_values_act<-rbind(cell_values_act,
+                         cbind(rep(cellname[i],11),
+                         volt,
+                         cond_norm))  
   cell_values_i[s,3]<-coef(model)[2]
   cell_values<-rbind(cell_values,cell_values_i)
   
 }
 V381Y<-as.numeric(cell_values[,3])
+V381Y_act<-cell_values_act
