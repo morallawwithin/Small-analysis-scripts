@@ -1,15 +1,23 @@
 library(readxl)
 library(tidyverse)
-data<-read_xlsx("G:/Arbeit/EEG/Auswertung_20230607.xlsx")
+library(plyr)
+library(lsmeans)
+library(lme4)
+data<-read_xlsx("G:/Arbeit/EEG/Auswertung_final_20230919_PM.xlsx")
+colnames(data)[6] ="cfos"
 data$animal<-as.factor(data$animal)
 data$Area<-as.factor(data$Area)
-data$Genotype<-factor(data$Genotype,levels = c("wt","P405L"))
-data<-data[!is.na(data$`%`),]
-data<-data[!(data$Area %in% c("PPAA","TH")),]
-areas<-aov(data$`%`~Area*Genotype+Error(animal),data=data)
+data$Genotype<-factor(data$Genotype, levels=c("WT","P405L"))
+data$Genotype<-revalue(data$Genotype,c("WT"="wt","P405L"="P405L"))
+data<-data[!is.na(data$cfos),]
+data<-data[!(data$Area %in% c("PPAA")),]
+areas<-lmer(cfos~Area*Genotype+(1|animal),data=data)
 summary(areas)
 
-ggplot(data, aes(Area,data$`%`,color=Genotype))+
+lsmeans(areas, pairwise ~ Genotype | Area, adjust = "tukey")
+
+
+ggplot(data, aes(Area,cfos,color=Genotype))+
   geom_boxplot(aes(fill=Genotype))+
   geom_point(aes(group=Genotype),position=position_dodge(width=0.75))+
   theme_classic()+
