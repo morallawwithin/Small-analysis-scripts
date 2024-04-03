@@ -2,6 +2,8 @@ library(readABF)
 library(tidyverse)
 library(writexl)
 library(ggprism)
+library(RColorBrewer)
+
 cell1<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0003.abf","base",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0004.abf","extra.0",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0005.abf","extra.3",
@@ -103,8 +105,10 @@ cell8<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_06_20_0
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_06_20_0022.abf","toxin.12"),
               nrow=2)
 #curr_cell<-cell5
-cell_values<-data.frame(matrix(ncol = 3, nrow = 0))
+cell_values<-data.frame(matrix(ncol = 4, nrow = 0))
 colnames(cell_values)<-c("cell","condition","amplitude","v1/2")
+cell_values_act<-data.frame(matrix(ncol = 5, nrow = 0))
+colnames(cell_values_act)<-c("cell","condition","voltage","cond. norm.","tail. curr.")
 cells<-list(cell1,cell2,cell3,cell4,cell5,cell6,cell7,cell8)
 cellname<-c("cell1","cell2","cell3","cell4","cell5","cell6","cell7","cell8")
 for ( i in 1:length(cellname)){
@@ -122,22 +126,43 @@ for ( i in 1:length(cellname)){
     curr<-rep(0, 11)
     volt<-(-6:4)*10
 
-    for (i in 1:11){
-      sweep.data<-as.data.frame(data,sweep=i)
+    for (t in 1:11){
+      sweep.data<-as.data.frame(data,sweep=t)
       sweep.max<-sweep.data[c(780:45000),c(1,4)]
-      curr[i]<-max(sweep.max)
-      cond[i]<-max(sweep.max/(volt[i]+95))
+      curr[t]<-max(sweep.max)
+      cond[t]<-max(sweep.max/(volt[t]+95))
       sweep.tail<-sweep.data[c(45000:46000),c(1,4)]
-     tail_curr[i]<-min(sweep.tail)
+     tail_curr[t]<-min(sweep.tail)
       }
-cond_norm<-cond/max(cond)
-tail_norm<-tail_curr/min(tail_curr)
-
-
-#cell_values[s,4]<-coef(model)[2]
-cell_values_i[s,3]<-curr[10]}
+  cond_norm<-cond/max(cond)
+  tail_norm<-tail_curr/min(tail_curr)
+  # ##Analysis of opening curve
+  # sweep<-data.frame("voltage"=volt, 
+  #                   "conductance"= cond_norm)
+  # SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
+  # 
+  # activation <- function(g, Vhalf, k,c,V) (g/(1+exp((Vhalf-V)/k))+c)
+  # model <- nls(conductance ~ activation(myg,myVhalf,myk,myc,voltage), data=sweep, start=list(myg=SS["alpha"],myVhalf=SS["xmid"],myk=SS["scale"],myc=0),control = nls.control(maxiter = 400))
+  # 
+  # curve_df <- data.frame("voltage" = seq(min(sweep$voltage), max(sweep$voltage), length.out = 100),
+  #                        "conductance" = seq(min(sweep$conductance), max(sweep$conductance), length.out = 100))
+  # curve_df$prob <- predict(model, curve_df, type = "response")
+  # print(
+  #   ggplot(curve_df, aes(x = voltage, y = prob)) +
+  #     geom_line() +
+  #     geom_point(data=sweep,aes(x=voltage,y=conductance))+
+  #     theme_classic())
+  cell_values_act<-rbind(cell_values_act,
+                         cbind(rep(cellname[i],11),
+                               curr_cell[2,s],
+                               volt,
+                               cond_norm,
+                               tail_norm)) 
+  #cell_values[s,4]<-coef(model)[2]
+  cell_values_i[s,3]<-curr[10]
+  }
+  
 cell_values<-rbind(cell_values,cell_values_i)
-
 }
 
 
@@ -154,12 +179,12 @@ for ( i in cellname){
   }
 
 cell_values [c('Condition', 'Time')]<- str_split_fixed(cell_values$V2,"\\.",2)
-cell_values$Time<-as.factor(cell_values$Time)
+cell_values$Time<-factor(cell_values$Time, levels = c("0","3","6","9","12"))
 cell_values<-cell_values[!cell_values$Condition=="base",]
 colnames(cell_values)<-c("cell"  ,      "ident"   ,     "raw.Amp"   ,     "norm.Amp"   ,     "Condition", "Time")
 cell_values$norm.Amp<-as.numeric(cell_values$norm.Amp)
 
-write_xlsx(cell_values,"D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.xlsx")
+#write_xlsx(cell_values,"D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.xlsx")
 
 
 ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,shape = Condition))+
@@ -185,3 +210,60 @@ ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.png", width = 5, heigh
   #geom_point()+
   #geom_line(aes(x=voltage,y=PredictionsNLS))+
   #theme_classic()
+
+################################################################################################
+##I/V curve over time 
+################################################################################################
+condition<-c(
+  "base",
+  "extra.0",
+  "extra.3",
+  "extra.6",
+  "extra.9",
+  "extra.12",
+  "toxin.0",
+  "toxin.3",
+  "toxin.6",
+  "toxin.9",
+  "toxin.12")
+df_act<-cell_values_act
+df_act [c('Condition', 'Time')]<- str_split_fixed(df_act$V2,"\\.",2)
+names(df_act)[names(df_act) == 'V2'] <- "CondTime"
+#df_act<-df_act[!df_act$Condition=="base",]
+df_act$Time<-factor(df_act$Time, levels = c("0","3","6","9","12"))
+df_act$CondTime<-factor(df_act$CondTime, levels = condition)
+df_act$volt<-as.numeric(df_act$volt)
+df_act$cond_norm<-as.numeric(df_act$cond_norm)
+df_act$tail_norm<-as.numeric(df_act$tail_norm)
+
+
+activation <- function(g, Vhalf, k,c,V) (g/(1+exp((V-Vhalf)/k))+c)
+model_extra <- nls(cond_norm ~ activation(myg,myVhalf,myk,myc,volt), data=filter(df_act,CondTime=="extra.12"), start=list(myg=1,myVhalf=-10,myk=12,myc=0),control = nls.control(maxiter = 400))
+model_tox<- nls(cond_norm ~ activation(myg,myVhalf,myk,myc,volt), data=filter(df_act,CondTime=="toxin.12"), start=list(myg=1,myVhalf=-15,myk=12,myc=0),control = nls.control(maxiter = 400))
+
+mypal <- colorRampPalette(brewer.pal(3, "Blues"),bias = 5)
+mypal2 <- colorRampPalette(brewer.pal(3, "YlOrRd"),bias = 5)
+
+ggplot(data=df_act,aes(x=volt, y=cond_norm, group=CondTime, fill=CondTime,shape = Condition,col=CondTime))+
+  stat_summary(fun = mean, 
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar',  width = 2,  size=1) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'point', size=4) +
+  #geom_beeswarm(size=1)+
+  geom_smooth(method = "nls", 
+              method.args = list(formula = y ~ activation(myg,myVhalf,myk,myc,x),
+                                 start=list(myg=1,myVhalf=-12,myk=12,myc=0)), 
+              data = df_act,
+              se = FALSE,
+              )+
+
+  scale_colour_manual(values = c("black", mypal(5),mypal2(5))) +
+  scale_fill_manual(values = c("black", mypal(5),mypal2(5))) +
+  #scale_shape_manual (values =c(21,22,23,24))+
+  #xlim(c(-60,70))+
+  theme_prism(base_size = 14)+
+  xlab("memb. pot. [mV]") + ylab("norm. cond.")
+
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2_V381Y_Toxin_act.png", width = 8, height = 6)
