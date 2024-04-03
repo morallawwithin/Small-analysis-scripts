@@ -70,8 +70,8 @@ cell11<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1 WT/2022_4_8/",
                                       pattern="_00(2[2-9]|3[0-2])"),
                            sep=""),
                      condition ), ncol = 2)
-cell_values_act<-data.frame(matrix(ncol = 3, nrow = 0))
-colnames(cell_values_act)<-c("cell","voltage","cond. norm.")
+cell_values_act<-data.frame(matrix(ncol = 4, nrow = 0))
+colnames(cell_values_act)<-c("cell","voltage","cond. norm.","tail. curr.")
 cell_values<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(cell_values)<-c("cell","amplitude","v1/2")
 cellname<-c(paste("cell0",c(1:9),sep=""),paste("cell",c(10:11),sep=""))
@@ -121,7 +121,8 @@ for ( i in 1:length(cellname)){
   cell_values_act<-rbind(cell_values_act,
                          cbind(rep(cellname[i],11),
                                volt,
-                               cond_norm))
+                               cond_norm,
+                               tail_norm))
 }
 kcna1<-as.numeric(cell_values[,3])
 kcna1_act<-cell_values_act

@@ -35,6 +35,7 @@ df_act$group<-factor(c(rep("KCNA2 wt",15*16),
 df_act$group<-factor(df_act$group,c("KCNA2 wt","KCNA2 V381Y","KCNA1","KCNA1+KCNA2"))
 df_act$volt<-as.numeric(df_act$volt)
 df_act$cond_norm<-as.numeric(df_act$cond_norm)
+df_act$tail_norm<-as.numeric(df_act$tail_norm)
 
 activation <- function(g, Vhalf, k,c,V) (g/(1+exp((V-Vhalf)/k))+c)
 model_kcna2 <- nls(cond_norm ~ activation(myg,myVhalf,myk,myc,volt), data=filter(df_act, group=="wt"), start=list(myg=1,myVhalf=10,myk=12,myc=0),control = nls.control(maxiter = 400))
@@ -42,7 +43,7 @@ model_V381Y<- nls(cond_norm ~ activation(myg,myVhalf,myk,myc,volt), data=filter(
 
 
 
-ggplot(data=df_act,aes(x=volt, y=cond_norm, group=group, fill=group,shape = group))+
+ggplot(data=df_act,aes(x=volt, y=tail_norm, group=group, fill=group,shape = group))+
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
                fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
@@ -62,4 +63,4 @@ ggplot(data=df_act,aes(x=volt, y=cond_norm, group=group, fill=group,shape = grou
   xlim(c(-60,70))+
   theme_prism(base_size = 14)+
   xlab("memb. pot. [mV]") + ylab("norm. cond.")
-ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/activation_curve_all.png", width = 5, height = 4)
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/activation_curve_all_tails.png", width = 5, height = 4)

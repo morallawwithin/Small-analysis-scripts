@@ -51,8 +51,8 @@ cell07<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                            sep=""),
                      condition ), ncol = 2)
 
-cell_values_act<-data.frame(matrix(ncol = 3, nrow = 0))
-colnames(cell_values_act)<-c("cell","voltage","cond. norm.")
+cell_values_act<-data.frame(matrix(ncol = 4, nrow = 0))
+colnames(cell_values_act)<-c("cell","voltage","cond. norm.","tail. curr.")
 cell_values<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(cell_values)<-c("cell","amplitude","v1/2")
 cellname<-c(paste("cell0",c(1:7),sep=""))
@@ -81,7 +81,8 @@ for ( i in 1:length(cellname)){
   
   
   sweep<-data.frame("voltage"=volt, 
-                    "conductance"= cond_norm)
+                    "conductance"= cond_norm,
+                    "tail_curr"=tail_norm)
   SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
   
   activation <- function(g, Vhalf, k,c,V) (g/(1+exp((Vhalf-V)/k))+c)
@@ -94,6 +95,7 @@ for ( i in 1:length(cellname)){
     ggplot(curve_df, aes(x = voltage, y = prob)) +
       geom_line() +
       geom_point(data=sweep,aes(x=voltage,y=conductance))+
+      geom_point(data=sweep,aes(x=voltage,y=tail_curr), col="blue")+
       theme_classic())
   
   cell_values_i[s,3]<-coef(model)[2]
@@ -102,7 +104,8 @@ for ( i in 1:length(cellname)){
   cell_values_act<-rbind(cell_values_act,
                          cbind(rep(cellname[i],16),
                                volt,
-                               cond_norm))
+                               cond_norm,
+                               tail_norm))
 }
 kcna1_kcna2<-as.numeric(cell_values[,3])
 kcna1_kcna2_act<-cell_values_act
