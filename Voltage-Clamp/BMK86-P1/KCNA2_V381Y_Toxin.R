@@ -136,22 +136,6 @@ for ( i in 1:length(cellname)){
       }
   cond_norm<-cond/max(cond)
   tail_norm<-tail_curr/min(tail_curr)
-  # ##Analysis of opening curve
-  # sweep<-data.frame("voltage"=volt, 
-  #                   "conductance"= cond_norm)
-  # SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
-  # 
-  # activation <- function(g, Vhalf, k,c,V) (g/(1+exp((Vhalf-V)/k))+c)
-  # model <- nls(conductance ~ activation(myg,myVhalf,myk,myc,voltage), data=sweep, start=list(myg=SS["alpha"],myVhalf=SS["xmid"],myk=SS["scale"],myc=0),control = nls.control(maxiter = 400))
-  # 
-  # curve_df <- data.frame("voltage" = seq(min(sweep$voltage), max(sweep$voltage), length.out = 100),
-  #                        "conductance" = seq(min(sweep$conductance), max(sweep$conductance), length.out = 100))
-  # curve_df$prob <- predict(model, curve_df, type = "response")
-  # print(
-  #   ggplot(curve_df, aes(x = voltage, y = prob)) +
-  #     geom_line() +
-  #     geom_point(data=sweep,aes(x=voltage,y=conductance))+
-  #     theme_classic())
   cell_values_act<-rbind(cell_values_act,
                          cbind(rep(cellname[i],11),
                                curr_cell[2,s],
@@ -183,9 +167,6 @@ cell_values$Time<-factor(cell_values$Time, levels = c("0","3","6","9","12"))
 cell_values<-cell_values[!cell_values$Condition=="base",]
 colnames(cell_values)<-c("cell"  ,      "ident"   ,     "raw.Amp"   ,     "norm.Amp"   ,     "Condition", "Time")
 cell_values$norm.Amp<-as.numeric(cell_values$norm.Amp)
-
-#write_xlsx(cell_values,"D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.xlsx")
-
 
 ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,shape = Condition))+
   stat_summary(fun = mean, 

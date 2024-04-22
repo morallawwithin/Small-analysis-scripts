@@ -95,18 +95,45 @@ act.mdl<-lm(median_activity ~ gene*cos(2*pi*time_mdl/(24*60/interval)),data=bin)
 summary(act.mdl)
 vis<-visreg(act.mdl,"time_mdl",by="gene",overlay=TRUE,ylim=c(0,800))
 a<-ggplot(vis$fit, aes(time_mdl, visregFit))+
-  geom_boxplot(data=filter(vis$res, gene == "P353R"), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill="deepskyblue",outlier.shape = NA)+
-  geom_boxplot(data=filter(vis$res, gene == "wt"), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="grey",outlier.shape = NA)+
-  #geom_point(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='blue')+
-  #geom_point(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='red')+
+  geom_boxplot(data=filter(vis$res, gene == "P353R"), aes(time_mdl, visregRes,group=as.factor(time_mdl),fill="P353R"),position = position_nudge(x=-0.1),outlier.shape = NA)+
+  geom_boxplot(data=filter(vis$res, gene == "wt"), aes(time_mdl, visregRes,group=as.factor(time_mdl),fill="wt"),position = position_nudge(x=0.1),outlier.shape = NA)+
+  scale_fill_manual("", 
+                    breaks = c("P353R", "wt"),
+                    values = c("deepskyblue", "grey")) +
   geom_line(data=filter(vis$fit, gene == "P353R"),colour='blue', size=1)+
   geom_ribbon(data=filter(vis$fit, gene == "P353R"),aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
   geom_line(data=filter(vis$fit, gene == "wt"),colour='black', size=1)+
   geom_ribbon(data=filter(vis$fit, gene == "wt"),aes(ymin=visregLwr, ymax=visregUpr), fill='darkgrey',alpha=.3)+
-  labs(y = "Median Distance per h [cm]")+
+  labs(y = "Median Velocity by h [cm/min]")+
   labs(x="Time of Day")+
   scale_x_continuous(breaks=c(4,8,12,16,20,24), labels=c("4:00","8:00","12:00","16:00","20:00","24:00"),limits=c(0.5,24.5))+
-  ylim(-20,500) 
+  scale_y_continuous(expand = c(0, 0))+
+  theme_classic()+
+  theme(legend.position=c(.9,.85))
+
+ggsave(a,file="Median_velocity_by_h.png")
+
+act.mdl2<-lm(sum_activity ~ gene*cos(2*pi*time_mdl/(24*60/interval)),data=bin)#this is a linear model with a cos fit for time
+#summary(glht(act.mdl, linfct=mcp(gene="Tukey")))
+summary(act.mdl2)
+vis2<-visreg(act.mdl2,"time_mdl",by="gene",overlay=TRUE)
+aa<-ggplot(vis2$fit, aes(time_mdl, visregFit))+
+  geom_boxplot(data=filter(vis2$res, gene == "P353R"), aes(time_mdl, visregRes,group=as.factor(time_mdl),fill="P353R"),position = position_nudge(x=-0.1),outlier.shape = NA)+
+  geom_boxplot(data=filter(vis2$res, gene == "wt"), aes(time_mdl, visregRes,group=as.factor(time_mdl),fill="wt"),position = position_nudge(x=0.1),outlier.shape = NA)+
+  scale_fill_manual("", 
+                      breaks = c("P353R", "wt"),
+                      values = c("deepskyblue", "grey")) +
+  geom_line(data=filter(vis2$fit, gene == "P353R"),colour='blue', size=1)+
+  geom_ribbon(data=filter(vis2$fit, gene == "P353R"),aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
+  geom_line(data=filter(vis2$fit, gene == "wt"),colour='black', size=1)+
+  geom_ribbon(data=filter(vis2$fit, gene == "wt"),aes(ymin=visregLwr, ymax=visregUpr), fill='darkgrey',alpha=.3)+
+  labs(y = "Total distance per h [cm]")+
+  labs(x="Time of Day")+
+  scale_x_continuous(breaks=c(4,8,12,16,20,24), labels=c("4:00","8:00","12:00","16:00","20:00","24:00"),limits=c(0.5,24.5))+
+  theme_classic()+
+  scale_y_continuous(expand = c(0, 0))+
+  theme(legend.position=c(.9,.75))
+ggsave(aa,file="Total_distance_per_h.png")
 
 #Food and Drink
 
