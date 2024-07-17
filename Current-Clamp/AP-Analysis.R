@@ -8,133 +8,31 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-directory<-"D:/Peter/Data/KCNA2/P405L_Mice/Ephys/Peter"
-directory2<-"D:/Peter/Data/KCNA2/P405L_Mice/Ephys/P405L_Liz/Ctx_SSP"
-cell01<-c(paste0(directory,
-               "/20240503/24503005",
-               ".abf"),
-          "Kcna2+/+")
-cell02<-c(paste0(directory,
-                 "/20240506/24506009",
-                 ".abf"),
-          "Kcna2+/+")
-cell03<-c(paste0(directory,
-                 "/20240506/24506017",
-                 ".abf"),
-          "Kcna2+/+")
-cell04<-c(paste0(directory,
-                 "/20240506/24506024",
-                 ".abf"),
-          "Kcna2+/+")
-cell05<-c(paste0(directory,
-                 "/20240506/24506032",
-                 ".abf"),
-          "Kcna2+/+")
-cell06<-c(paste0(directory,
-                 "/20240507/24507006",
-                 ".abf"),
-          "Kcna2+/+")
-cell07<-c(paste0(directory,
-                 "/20240510/24510004",
-                 ".abf"),
-          "Kcna2+/+")
-cell08<-c(paste0(directory,
-                 "/20240510/24510017",
-                 ".abf"),
-          "Kcna2+/+")
-cell09<-c(paste0(directory,
-                 "/20240510/24510024",
-                 ".abf"),
-          "Kcna2+/+")
-cell10<-c(paste0(directory,
-                 "/20240604/24604018",
-                 ".abf"),
-          "Kcna2+/+")
-cell11<-c(paste0(directory,
-                 "/20240604/24604033",
-                 ".abf"),
-          "Kcna2+/+")
-cell12<-c(paste0(directory,
-                 "/20240610/24610008",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell13<-c(paste0(directory,
-                 "/20240610/24610015",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell14<-c(paste0(directory,
-                 "/20240611/24611005",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell15<-c(paste0(directory,
-                 "/20240611/24611012",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell16<-c(paste0(directory,
-                 "/20240613/24613003",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell17<-c(paste0(directory,
-                 "/20240613/24613016",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell18<-c(paste0(directory,
-                 "/20240502/24502006",
-                 ".abf"),
-          "Kcna2+/P405L")
-# cell19<-c(paste0(directory2,
-#                  "/20240613/24613008",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell20<-c(paste0(directory2,
-#                  "/20240613/24613013",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell21<-c(paste0(directory2,
-#                  "/20240613/24613027",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell22<-c(paste0(directory2,
-#                  "/20240613/24613033",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell23<-c(paste0(directory2,
-#                  "/20240614/24614026",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell24<-c(paste0(directory2,
-#                  "/20240614/24614031",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell25<-c(paste0(directory2,
-#                  "/20240614/24614036",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
+dataset<-"Cortex_L2&3_PN"
+data <- read_excel(paste0(dataset,".xlsx"))
+setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
+data<-data[data$protocol=="AP",]
+cells<-data[,c(2,3)]
+cellname<-data$cell
+
 ##########
 #prepare everything for the loop
 ##########
-cells<-list(cell01, cell02, cell03, cell04, cell05, cell06, cell07, cell08, cell09, cell10, 
-            cell11, cell12, cell13, cell14, cell15, cell16, cell17, cell18#, cell19, cell20,
-            #cell21, cell22, cell23, cell24, cell25
-            )
-cellname<-c(paste0("cell0",c(1:9)),paste0("cell",c(10:18)))
-
 sweep<-data.frame(matrix(ncol = 4, nrow = 0))
 colnames(sweep)<-c("cell","genotype","current","AP")
-
 AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
-
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
+
 ########
 #loop starts here
 #######
 for ( i in 1:length(cellname)){
 #select the cell
-  curr_cell<-cells[[i]]
+  curr_cell<-cells[i,]
 #read data of one cell  
-  data<-readABF(curr_cell[1])
+  data<-readABF(curr_cell$file)
 #How many sweeps
   sweepnr<-length(data$data)
   samplerate<-100000 #/s
@@ -144,7 +42,7 @@ for ( i in 1:length(cellname)){
   AP_isi<-list()
 #which voltage at which step  
   curr<-25*(-4:(sweepnr-5))  
-  if(curr_cell[2]=="Kcna2+/P405L_Liz"){
+  if(curr_cell$genotype=="Kcna2+/P405L_Liz"){
     #do the sweep analysis  
     for (ii in 1:sweepnr){
       #read the sweep data
@@ -255,7 +153,7 @@ for ( i in 1:length(cellname)){
   AP_properties<-rbind(AP_properties,
                        data.frame(
                          "cell"=rep(cellname[i],length(unlist(AP_thres))),
-                         "genotype"=rep(curr_cell[2],length(unlist(AP_thres))),
+                         "genotype"=rep(curr_cell$genotype,length(unlist(AP_thres))),
                          "current"=as.numeric( stringr::str_extract(AP_thres_names,"[123]?[2570][05]")),
                          "AP_Nr"=as.numeric(AP_thres_nr),
                          "Threshold"=unlist(AP_thres)
@@ -268,12 +166,12 @@ for ( i in 1:length(cellname)){
   AP_IFF<-rbind(AP_IFF,
                        data.frame(
                          "cell"=rep(cellname[i],length(unlist(AP_isi))),
-                         "genotype"=rep(curr_cell[2],length(unlist(AP_isi))),
+                         "genotype"=rep(curr_cell$genotype,length(unlist(AP_isi))),
                          "current"=as.numeric( stringr::str_extract(AP_isi_names,"[123]?[2570][05]")),
                          "AP_Nr"=as.numeric(AP_isi_nr),
                          "IFF"=unlist(AP_isi)
                        ))
- print(paste0("finished analysis of ",curr_cell[1])) 
+ print(paste0("finished analysis of ",curr_cell$file)) 
 }    
 
 p1<-ggplot(sweep,aes(current,AP,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  

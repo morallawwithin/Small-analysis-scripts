@@ -1,6 +1,6 @@
 library(readABF)
 library(tidyverse)
-library(writexl)
+library(readxl)
 library(ggprism)
 library(pspline)
 library(ggsignif)
@@ -9,120 +9,15 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-directory<-"D:/Peter/Data/KCNA2/P405L_Mice/Ephys/Peter"
-directory2<-"D:/Peter/Data/KCNA2/P405L_Mice/Ephys/P405L_Liz/Ctx_SSP"
-cell01<-c(paste0(directory,
-                 "/20240503/24503003",
-                 ".abf"),
-          "Kcna2+/+")
-cell02<-c(paste0(directory,
-                 "/20240506/24506008",
-                 ".abf"),
-          "Kcna2+/+")
-cell03<-c(paste0(directory,
-                 "/20240506/24506016",
-                 ".abf"),
-          "Kcna2+/+")
-cell04<-c(paste0(directory,
-                 "/20240506/24506023",
-                 ".abf"),
-          "Kcna2+/+")
-cell05<-c(paste0(directory,
-                 "/20240506/24506030",
-                 ".abf"),
-          "Kcna2+/+")
-cell06<-c(paste0(directory,
-                 "/20240507/24507005",
-                 ".abf"),
-          "Kcna2+/+")
-cell07<-c(paste0(directory,
-                 "/20240510/24510003",
-                 ".abf"),
-          "Kcna2+/+")
-cell08<-c(paste0(directory,
-                 "/20240510/24510016",
-                 ".abf"),
-          "Kcna2+/+")
-# cell09<-c(paste0(directory,
-#                  "/20240510/24510023",
-#                  ".abf"),
-#           "Kcna2+/+")
-cell10<-c(paste0(directory,
-                 "/20240604/24604016",
-                 ".abf"),
-          "Kcna2+/+")
-cell11<-c(paste0(directory,
-                 "/20240604/24604032",
-                 ".abf"),
-          "Kcna2+/+")
-cell12<-c(paste0(directory,
-                 "/20240610/24610007",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell13<-c(paste0(directory,
-                 "/20240610/24610014",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell14<-c(paste0(directory,
-                 "/20240611/24611003",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell15<-c(paste0(directory,
-                 "/20240611/24611010",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell16<-c(paste0(directory,
-                 "/20240613/24613002",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell17<-c(paste0(directory,
-                 "/20240613/24613015",
-                 ".abf"),
-          "Kcna2+/P405L")
-cell18<-c(paste0(directory,
-                 "/20240502/24502003",
-                 ".abf"),
-          "Kcna2+/P405L")
-# cell19<-c(paste0(directory2,
-#                  "/20240613/24613007",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell20<-c(paste0(directory2,
-#                  "/20240613/24613012",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell21<-c(paste0(directory2,
-#                  "/20240613/24613026",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell22<-c(paste0(directory2,
-#                  "/20240613/24613032",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell23<-c(paste0(directory2,
-#                  "/20240614/24614025",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell24<-c(paste0(directory2,
-#                  "/20240614/24614030",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
-# cell25<-c(paste0(directory2,
-#                  "/20240614/24614035",
-#                  ".abf"),
-#           "Kcna2+/P405L_Liz")
+dataset<-"Cortex_L2&3_PN"
+data <- read_excel(paste0(dataset,".xlsx"))
+setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
+data<-data[data$protocol=="ramp",]
+cells<-data[,c(2,3)]
+cellname<-data$cell
 ##########
 #prepare everything for the loop
 ##########
-cells<-list(cell01, cell02, cell03, cell04, cell05, cell06, cell07, cell08, #cell09, 
-            cell10,            cell11, cell12, cell13, cell14, cell15, cell16,cell17,cell18#,cell19, cell20,
-            #cell21, cell22, cell23, cell24, cell25
-            )
-cellname<-c("cell01" ,"cell02" ,"cell03" ,"cell04" ,"cell05" ,"cell06" ,"cell07" ,"cell08" ,#"cell09" ,
-            paste0("cell",c(10:18))
-            )
-  #c(paste0("cell0",c(1:9)),paste0("cell",c(10:18)))
-
 AP_data<-data.frame(matrix(ncol = 7, nrow = 0))
 colnames(AP_data)<-c("volt","curr","time","ind","first_deriv","cell","genotype")
 AP_properties<-data.frame(matrix(ncol = 9, nrow = 0))
@@ -134,11 +29,10 @@ samplerate<-100000 #/s
 #loop starts here
 #######
 for ( i in 1:length(cellname)){
-
   #select the cell
-  curr_cell<-cells[[i]]
+  curr_cell<-cells[i,]
   #read data of one cell  
-  data<-readABF(curr_cell[1])
+  data<-readABF(curr_cell$file)
   sweep_length<-length(data$data[[1]][,1])/samplerate
   if (sweep_length<1.4){
     command_curr  <-c(rep(0,1875),c(1:samplerate)/(samplerate/200),rep(0,(0.2*samplerate-1875)))
@@ -158,7 +52,7 @@ for ( i in 1:length(cellname)){
     "ind" = c(1:(601+range_after)))
   AP_data_cell$first_deriv<-predict(sm.spline(AP_data_cell$time, AP_data_cell$volt), AP_data_cell$time, 1)/samplerate*1000
   AP_data_cell$cell<-rep(cellname[i],length(AP_data_cell$volt))
-  AP_data_cell$genotype<-rep(curr_cell[2],length(AP_data_cell$volt))
+  AP_data_cell$genotype<-rep(curr_cell$genotype,length(AP_data_cell$volt))
   AP_data<-rbind(AP_data,AP_data_cell)
   #select indices that are above the firing threshold defined as 20 V/s
   AP_thres_ind<-which(AP_data_cell$first_deriv[1:601]>20)
@@ -172,7 +66,7 @@ for ( i in 1:length(cellname)){
   FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[fAHP_ind]))
   AP_properties_cell<-data.frame(
     "cell"=cellname[i],
-    "genotype"=curr_cell[2],
+    "genotype"=curr_cell$genotype,
     "rheobase"=AP_data_cell$curr[AP_ind_thres],
     "threshold"=AP_data_cell$volt[AP_ind_thres],
     "FWHA"=AP_data_cell$time[tail(FWHA_ind,1)]-AP_data_cell$time[head(FWHA_ind,1)],
