@@ -42,58 +42,15 @@ for ( i in 1:length(cellname)){
   AP_isi<-list()
 #which voltage at which step  
   curr<-25*(-4:(sweepnr-5))  
-  if(curr_cell$genotype=="Kcna2+/P405L_Liz"){
     #do the sweep analysis  
     for (ii in 1:sweepnr){
       #read the sweep data
       sweep.data<-as.data.frame(data,sweep=ii) 
       #calculate the first derivative
-      sweep.data$first_derivate<-predict(sm.spline(sweep.data$`Time [s]`, sweep.data$`IN 2 [mV]`), sweep.data$`Time [s]`, 1)/samplerate*1000
+      sweep.data$first_derivate<-predict(sm.spline(sweep.data[,1], sweep.data[,2]), sweep.data[,1], 1)/samplerate*1000
       #Find action potentials
       #first: find indices that are above 0 mV
-      AP_ind_raw<-which(sweep.data$`IN 2 [mV]`>0)
-      #if there are any continue analysis
-      if(!is_empty(AP_ind_raw)){
-        #calculate the difference between the indices >0 mV
-        #you loose one index this way, therefore you have to add them again
-        AP_ind_diff<-c(1000,diff(AP_ind_raw))
-        #select difference larger than 2ms
-        Ap_ind_log<-AP_ind_diff>200 
-        AP_ind_zero<-AP_ind_raw[Ap_ind_log]
-        #prepare for 2. criterion which also finds thresholds
-        AP_ind<-c()
-        for (iii in 1:length(AP_ind_zero)){
-          #take data 5ms before first value above 0mV
-          AP_data<-sweep.data$first_derivate[(AP_ind_zero[iii]-500):(AP_ind_zero[iii])]
-          #select indices that are above the firing threshold defined as 20 V/s
-          AP_thres_ind<-which(AP_data>20)
-          #calculate the difference between the indices >20 V/s and add one to the start
-          AP_thres_diff<-c(2,diff(AP_thres_ind))
-          #select the last index of the ones where thedifference to the previous index was >1
-          AP_ind_thres<-AP_thres_ind[tail(which(AP_thres_diff>1),1)]
-          #store this index
-          AP_ind[iii]<-AP_ind_zero[iii]-500+AP_ind_thres #threshold
-        }
-        #store the number of APs
-        AP_nr[ii]<-length(AP_ind)
-        #store the threshold of APs
-        AP_thres[[ii]]<-sweep.data$`IN 2 [mV]`[AP_ind]
-        #store the IFF of APs
-        AP_isi[[ii]]<-1/diff(sweep.data$`Time [s]`[AP_ind] )
-      }
-      else {
-        AP_nr[ii]<-0
-      }} 
-  }else{
-    #do the sweep analysis  
-    for (ii in 1:sweepnr){
-      #read the sweep data
-      sweep.data<-as.data.frame(data,sweep=ii) 
-      #calculate the first derivative
-      sweep.data$first_derivate<-predict(sm.spline(sweep.data$`Time [s]`, sweep.data$`INcc 0 [mV]`), sweep.data$`Time [s]`, 1)/samplerate*1000
-      #Find action potentials
-      #first: find indices that are above 0 mV
-      AP_ind_raw<-which(sweep.data$`INcc 0 [mV]`>0)
+      AP_ind_raw<-which(sweep.data[,2]>0)
       #if there are any continue analysis
       if(!is_empty(AP_ind_raw)){
         #calculate the difference between the indices >0 mV
@@ -119,9 +76,9 @@ for ( i in 1:length(cellname)){
         #store the number of APs
         AP_nr[ii]<-length(AP_ind)
         #store the threshold of APs
-        AP_thres[[ii]]<-sweep.data$`INcc 0 [mV]`[AP_ind]
+        AP_thres[[ii]]<-sweep.data[,2][AP_ind]
         #store the IFF of APs
-        AP_isi[[ii]]<-1/diff(sweep.data$`Time [s]`[AP_ind] )
+        AP_isi[[ii]]<-1/diff(sweep.data[,1][AP_ind] )
 ###############      
 #uncomment the section below to display thresolds for each analyzed sweep
 #############        
@@ -136,7 +93,7 @@ for ( i in 1:length(cellname)){
     }
     else {
       AP_nr[ii]<-0
-    }}}
+    }}
 
   #store the number of APs per cell
   sweep<-rbind(sweep,
