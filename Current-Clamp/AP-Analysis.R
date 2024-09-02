@@ -1,6 +1,6 @@
 library(readABF)
 library(tidyverse)
-library(writexl)
+library(readxl)
 library(ggprism)
 library(pspline)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
@@ -141,7 +141,7 @@ for ( i in 1:length(cellname)){
   #store the number of APs per cell
   sweep<-rbind(sweep,
     data.frame("cell"=rep(cellname[i],sweepnr),
-               "genotype"=rep(curr_cell[2],sweepnr),
+               "genotype"=rep(curr_cell$genotype,sweepnr),
                "current"=curr[1:sweepnr], 
                     "AP"= AP_nr))
   
@@ -205,8 +205,8 @@ model_IFF<-lm(IFF~AP_Nr+current+genotype,data= AP_IFF)
 summary(model_IFF)
 
 
-ggplot(AP_properties,aes(AP_Nr,Threshold, col=genotype))+
-  geom_point()+
+ggplot(AP_properties,aes(as.factor(AP_Nr),Threshold, col=genotype))+
+  geom_boxplot()+
   #scale_colour_manual(values = c("black", "blue")) +
   theme_prism(base_size = 14)+
   xlab("AP number") + ylab("Threshold")

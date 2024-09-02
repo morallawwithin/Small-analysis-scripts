@@ -44,7 +44,7 @@ for ( i in 1:length(cellname)){
   
   #find first AP
   AP_ind_raw<-head(which(data$data[[1]][,1]>0),1)
-  range_after<-3500
+  range_after<-3000
   AP_data_cell<- data.frame(
     "volt" = c(data$data[[1]][(AP_ind_raw-600):(AP_ind_raw+range_after),1]),
     "curr" = command_curr[(AP_ind_raw-600):(AP_ind_raw+range_after)],
@@ -60,7 +60,7 @@ for ( i in 1:length(cellname)){
   AP_thres_diff<-c(2,diff(AP_thres_ind))
   #select the last index of the ones where thedifference to the previous index was >1
   AP_ind_thres<-AP_thres_ind[tail(which(AP_thres_diff>1),1)]
-  fAHP_ind<-head(which(AP_data_cell$volt[600:(range_after+601)]==min(AP_data_cell$volt[600:(range_after+601)])),1)
+  fAHP_ind<-head(which(AP_data_cell$volt[600:(range_after+601)]==min(AP_data_cell$volt[600:(range_after+601)])),1)+599
   amplitude<-max(AP_data_cell$volt)-AP_data_cell$volt[fAHP_ind]
   max_ind<-head(which(AP_data_cell$volt==max(AP_data_cell$volt)),1)
   FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[fAHP_ind]))
@@ -97,14 +97,14 @@ p1<-  ggplot(data=AP_data,aes(volt,first_deriv))+
     geom_errorbarh(data=AP_data.summary,aes(mn.volt,mn.firder,xmin=mn.volt-sd.volt/sqrt(length(cellname)),xmax=mn.volt+sd.volt/sqrt(length(cellname)),ymin=mn.firder-sd.firder/sqrt(length(cellname)),ymax=mn.firder+sd.firder/sqrt(length(cellname)), col=genotype))+
     scale_colour_manual(values = c("black", "blue","lightblue")) +
     ylab("first derivate [V/s]")+xlab("membran potential [mV]")+
-    theme_classic()
+    theme_prism(base_size = 14)
 
-ggsave(p1,width = 6, height = 6,
+ggsave(p1,width = 10, height = 6,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/phase_plot.png")
   
   ggplot(AP_data,aes(ind,volt, col=genotype))+
     geom_line(aes(group=cell))  
-  ggplot(AP_data[AP_data$cell=="cell04",],aes(ind,volt, col=genotype))+
+  ggplot(AP_data[AP_data$cell=="cell20",],aes(ind,volt, col=genotype))+
     geom_line(aes(group=cell)) 
   
 p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
@@ -114,7 +114,7 @@ p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
     scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     ylim(c(0,300))+
     ylab("rheobase [pA]")+
-    theme_classic()
+    theme_prism(base_size = 14)
   wilcox.test(rheobase~genotype,AP_properties)
   ggsave(p2,width = 4, height = 4,
          file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/rheobase.png")
@@ -126,7 +126,7 @@ p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     ylim(c(-60,0))+
     ylab("AP threshold [mV]")+
-    theme_classic()
+    theme_prism(base_size = 14)
   wilcox.test(threshold~genotype,AP_properties)
   ggsave(p3,width = 4, height = 4,
          file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/threshold.png")
@@ -137,7 +137,7 @@ p4<-  ggplot(AP_properties,aes(genotype,FWHA,fill=genotype, col=genotype))+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     ylab("FWHA [s]")+
-    theme_classic()
+    theme_prism(base_size = 14)
   wilcox.test(FWHA~genotype,AP_properties)
   ggsave(p4,width = 4, height = 4,
          file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/FWHA.png")
@@ -147,7 +147,7 @@ p5<-  ggplot(AP_properties,aes(genotype,fAHP,fill=genotype, col=genotype))+
     geom_point()+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-    theme_classic()    
+    theme_prism(base_size = 14)    
   wilcox.test(fAHP~genotype,AP_properties)
   ggsave(p5,width = 4, height = 4,
          file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/fAHP.png")
@@ -157,7 +157,7 @@ p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype)
     geom_point()+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-    theme_classic() 
+    theme_prism(base_size = 14) 
   wilcox.test(risingetime~genotype,AP_properties)
   ggsave(p6,width = 4, height = 4,
          file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/risingetime.png")
@@ -167,7 +167,7 @@ p7<-  ggplot(AP_properties,aes(genotype,repolarizingtime,fill=genotype, col=geno
     geom_point()+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-    theme_classic() 
+    theme_prism(base_size = 14) 
 wilcox.test(repolarizingtime~genotype,AP_properties,exact=T)  
 ggsave(p7,width = 4, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/repolarizingtime.png")
@@ -177,7 +177,20 @@ p8<-  ggplot(AP_properties,aes(genotype,amplitude,fill=genotype, col=genotype))+
   geom_point()+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-  theme_classic() 
+  theme_prism(base_size = 14) 
 wilcox.test(amplitude~genotype,AP_properties,exact=T)  
 ggsave(p8,width = 4, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/amplitude.png")
+
+data1<-readABF(cells$file[1])
+data1<-as.data.frame(data1)
+data2<-readABF(cells$file[12])
+data2<-as.data.frame(data2)
+p9<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_line()+
+  geom_line(data=data2,color="blue")+
+  ylim(c(-90,50))+
+  theme_prism(base_size = 14)+
+  xlab("time [s]") + ylab("memb. pot. [mV]")
+ggsave(p9,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/examples_200pA_1s.png")  

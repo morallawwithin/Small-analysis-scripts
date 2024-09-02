@@ -88,8 +88,9 @@ p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(gen
   stat_summary(fun = mean,
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c("black", "blue")) +
-  ylim(c(0,3))+
+  #ylim(c(-0.5,6))+
   theme_prism(base_size = 14)+
   xlab("injected current [pA]") + ylab("sag potential [mV]")
 ggsave(p3,width = 6, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/sag-pot.png")
+
