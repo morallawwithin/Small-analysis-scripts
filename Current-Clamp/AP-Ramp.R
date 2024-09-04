@@ -13,15 +13,15 @@ dataset<-"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
-cells<-data[,c(2,3)]
+cells<-data[,c(2,3,5)]
 cellname<-data$cell
 ##########
 #prepare everything for the loop
 ##########
 AP_data<-data.frame(matrix(ncol = 7, nrow = 0))
 colnames(AP_data)<-c("volt","curr","time","ind","first_deriv","cell","genotype")
-AP_properties<-data.frame(matrix(ncol = 9, nrow = 0))
-colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","fAHP","risingetime","repolarizingtime","amplitude")
+AP_properties<-data.frame(matrix(ncol = 10, nrow = 0))
+colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","fAHP","risingetime","repolarizingtime","amplitude","age")
 #Samplerate
 samplerate<-100000 #/s
 
@@ -73,7 +73,8 @@ for ( i in 1:length(cellname)){
     "fAHP"=AP_data_cell$volt[fAHP_ind]-mean(AP_data_cell$volt[1:100]),
     "risingetime"=AP_data_cell$time[max_ind]-AP_data_cell$time[AP_ind_thres],
     "repolarizingtime"=AP_data_cell$time[fAHP_ind]-AP_data_cell$time[max_ind],
-    "amplitude"=amplitude
+    "amplitude"=amplitude,
+    "age"=curr_cell$age
   )
   AP_properties<-rbind(AP_properties,AP_properties_cell)
   }
@@ -100,12 +101,14 @@ p1<-  ggplot(data=AP_data,aes(volt,first_deriv))+
     theme_prism(base_size = 14)
 
 ggsave(p1,width = 10, height = 6,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/phase_plot.png")
+       file="phase_plot.png")
   
   ggplot(AP_data,aes(ind,volt, col=genotype))+
     geom_line(aes(group=cell))  
-  ggplot(AP_data[AP_data$cell=="cell20",],aes(ind,volt, col=genotype))+
-    geom_line(aes(group=cell)) 
+  ggplot(AP_data[AP_data$cell=="cell35",],aes(ind,volt))+ #05
+    geom_line(aes(group=cell)) +
+    geom_line(data=AP_data[AP_data$cell=="cell17",], aes(group=cell),col="blue") +#22
+    theme_minimal()
   
 p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -117,7 +120,7 @@ p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
     theme_prism(base_size = 14)
   wilcox.test(rheobase~genotype,AP_properties)
   ggsave(p2,width = 4, height = 4,
-         file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/rheobase.png")
+         file="rheobase.png")
  
 p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -129,7 +132,7 @@ p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
     theme_prism(base_size = 14)
   wilcox.test(threshold~genotype,AP_properties)
   ggsave(p3,width = 4, height = 4,
-         file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/threshold.png")
+         file="threshold.png")
   
 p4<-  ggplot(AP_properties,aes(genotype,FWHA,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -140,7 +143,7 @@ p4<-  ggplot(AP_properties,aes(genotype,FWHA,fill=genotype, col=genotype))+
     theme_prism(base_size = 14)
   wilcox.test(FWHA~genotype,AP_properties)
   ggsave(p4,width = 4, height = 4,
-         file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/FWHA.png")
+         file="FWHA.png")
 
 p5<-  ggplot(AP_properties,aes(genotype,fAHP,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -150,7 +153,7 @@ p5<-  ggplot(AP_properties,aes(genotype,fAHP,fill=genotype, col=genotype))+
     theme_prism(base_size = 14)    
   wilcox.test(fAHP~genotype,AP_properties)
   ggsave(p5,width = 4, height = 4,
-         file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/fAHP.png")
+         file="fAHP.png")
     
 p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -160,7 +163,7 @@ p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype)
     theme_prism(base_size = 14) 
   wilcox.test(risingetime~genotype,AP_properties)
   ggsave(p6,width = 4, height = 4,
-         file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/risingetime.png")
+         file="risingetime.png")
     
 p7<-  ggplot(AP_properties,aes(genotype,repolarizingtime,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -170,7 +173,7 @@ p7<-  ggplot(AP_properties,aes(genotype,repolarizingtime,fill=genotype, col=geno
     theme_prism(base_size = 14) 
 wilcox.test(repolarizingtime~genotype,AP_properties,exact=T)  
 ggsave(p7,width = 4, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/repolarizingtime.png")
+       file="repolarizingtime.png")
   
 p8<-  ggplot(AP_properties,aes(genotype,amplitude,fill=genotype, col=genotype))+
   geom_boxplot()+
@@ -180,7 +183,7 @@ p8<-  ggplot(AP_properties,aes(genotype,amplitude,fill=genotype, col=genotype))+
   theme_prism(base_size = 14) 
 wilcox.test(amplitude~genotype,AP_properties,exact=T)  
 ggsave(p8,width = 4, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/amplitude.png")
+       file="amplitude.png")
 
 data1<-readABF(cells$file[1])
 data1<-as.data.frame(data1)
@@ -193,4 +196,4 @@ p9<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
   theme_prism(base_size = 14)+
   xlab("time [s]") + ylab("memb. pot. [mV]")
 ggsave(p9,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/examples_200pA_1s.png")  
+       file="examples_200pA_1s.png")  

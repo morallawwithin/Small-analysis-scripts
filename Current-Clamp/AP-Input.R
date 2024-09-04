@@ -42,10 +42,10 @@ for ( i in 1:length(cellname)){
     #read the sweep data
     sweep.data<-as.data.frame(data,sweep=ii)
     #get the resting potential
-    resting_memb_pot[ii]<-mean(sweep.data$`INcc 0 [mV]`[1:(0.01*samplerate)])
-    min_pot<-min(sweep.data$`INcc 0 [mV]`[1:(0.25*samplerate)])
+    resting_memb_pot[ii]<-mean(sweep.data[,2][1:(0.01*samplerate)])
+    min_pot<-min(sweep.data[,2][1:(0.25*samplerate)])
     input_resis[ii]<-(resting_memb_pot[ii]-min_pot)/abs(curr[ii])*1000
-    sag[ii]<-mean(sweep.data$`INcc 0 [mV]`[(0.45*samplerate):(0.5*samplerate)])-min_pot
+    sag[ii]<-mean(sweep.data[,2][(0.45*samplerate):(0.5*samplerate)])-min_pot
   }
   sag_data<-rbind(sag_data,
                data.frame("cell"=rep(cellname[i],sweepnr),
@@ -67,7 +67,7 @@ p1<-ggplot(pass_properties,aes(genotype,resting_memb_pot, fill=genotype,col=geno
   ylim(c(-100,0))+
   xlab("genotype") + ylab("resting_memb_pot")
 ggsave(p1,width = 4, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/resting_memb_pot.png")
+       file="resting_memb_pot.png")
 p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype))+
   geom_boxplot()+
   geom_point()+
@@ -77,7 +77,7 @@ p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype)
   ylim(c(0,400))+
   xlab("genotype") + ylab(expression(paste("input resistance [M",Omega,"]")))
 ggsave(p2,width = 4, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/input_resis.png")
+       file="input_resis.png")
 p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
@@ -92,5 +92,27 @@ p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(gen
   theme_prism(base_size = 14)+
   xlab("injected current [pA]") + ylab("sag potential [mV]")
 ggsave(p3,width = 6, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/sag-pot.png")
+       file="sag-pot.png")
 
+data1<-readABF(cells$file[1])
+data12<-data.frame(matrix(ncol = 4, nrow = 0))
+for (j in 1:11){
+  data11<-as.data.frame(data1,sweep=j)
+  data12<-rbind(data12,cbind(data11,rep(j,length(data11[,1]))))
+}
+
+data2<-readABF(cells$file[22])
+data22<-data.frame(matrix(ncol = 4, nrow = 0))
+for (j in 1:11){
+  data21<-as.data.frame(data2,sweep=j)
+  data22<-rbind(data22,cbind(data21,rep(j,length(data21[,1]))))
+}
+
+p4<-ggplot(data12,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_scattermore()+
+  geom_scattermore(data=data22,color="blue",shape='.')+
+  ylim(c(-100,-60))+
+  theme_prism(base_size = 14)+
+  xlab("time [s]") + ylab("memb. pot. [mV]")
+ggsave(p4,
+       file="examples_input.png")  

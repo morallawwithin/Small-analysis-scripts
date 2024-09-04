@@ -3,12 +3,13 @@ library(tidyverse)
 library(readxl)
 library(ggprism)
 library(pspline)
+library(ggbeeswarm)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN"
+dataset<-"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP",]
@@ -79,6 +80,7 @@ for ( i in 1:length(cellname)){
         AP_thres[[ii]]<-sweep.data[,2][AP_ind]
         #store the IFF of APs
         AP_isi[[ii]]<-1/diff(sweep.data[,1][AP_ind] )
+        #store the time of AP
 ###############      
 #uncomment the section below to display thresolds for each analyzed sweep
 #############        
@@ -147,7 +149,7 @@ p1<-ggplot(sweep,aes(current,AP,group=as.factor(genotype), col=as.factor(genotyp
 model_AP<-lm(AP~current*genotype,data= sweep)
 summary(model_AP)
 ggsave(p1,width = 6, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/APnumber.png")
+       file="APnumber.png")
 
 p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
   geom_boxplot()+
@@ -156,7 +158,21 @@ p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
   theme_prism(base_size = 14)+
   xlab("AP number") + ylab("inst. firing fre. [Hz]")
 ggsave(p2,width = 6, height = 4,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/instfiringfreqbox.png")
+       file="instfiringfreqbox.png")
+
+ggplot(AP_IFF,aes(AP_Nr,IFF,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
+  stat_summary(fun = mean, 
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar',  width = 1,size=1,  position = position_dodge(width = 0.5)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=as.factor(genotype))) +
+  stat_summary(fun = mean,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = c("black", "blue")) +
+  theme_prism(base_size = 14)+
+  xlab("number of AP") + ylab("instantenous firing frequency")
+
 
 model_IFF<-lm(IFF~AP_Nr+current+genotype,data= AP_IFF)
 summary(model_IFF)
@@ -168,7 +184,42 @@ ggplot(AP_properties,aes(as.factor(AP_Nr),Threshold, col=genotype))+
   theme_prism(base_size = 14)+
   xlab("AP number") + ylab("Threshold")
   
+#spike-frequency-index
+AP_IFF$cell_curr<-paste0(AP_IFF$cell,AP_IFF$current)
+cell_curr_more_than_1AP<-AP_IFF$cell_curr %in% names(table(AP_IFF$cell_curr)[table(AP_IFF$cell_curr)>1])
+AP_IFF_SFI<-AP_IFF[cell_curr_more_than_1AP,]
+start<-AP_IFF_SFI[!c(1,diff(as.integer(as.factor(AP_IFF_SFI$cell_curr))))==0,]
+end<-AP_IFF_SFI[!c(diff(as.integer(as.factor(AP_IFF_SFI$cell_curr))),1)==0,]
+start$SFI<-end$IFF/start$IFF
+p4<-ggplot(start,aes(genotype, SFI,color=genotype))+
+  geom_boxplot()+
+  geom_beeswarm()+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
+  ylab("SFA index")+
+  theme_prism(base_size = 14)
+ggsave(p4,width = 4, height = 4,
+       file="spike-frequency-adaptation.png") 
 
+for (x in AP_IFF_SFI$cell_curr){
+  current_cell_curr<-AP_IFF_SFI$IFF[AP_IFF_SFI$cell_curr==x]
+  current_cell_curr<-1/current_cell_curr#get the ISI from IFF
+  N<-length(current_cell_curr)
+  adaptation_ISI<-sapply(seq_along(c(1:(N-1))), function(n){
+    (current_cell_curr[n+1]-current_cell_curr[n])/(current_cell_curr[n+1]+current_cell_curr[n])
+  })
+  start$adaptation_index[start$cell_curr==x]<-sum(adaptation_ISI)/(N-1)    
+  }
+p5<-ggplot(start[start$current==200,],aes(genotype, adaptation_index,color=genotype))+
+  geom_boxplot()+
+  geom_beeswarm()+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
+  ylab("SFA index")+
+  theme_prism(base_size = 14)
+wilcox.test(adaptation_index~genotype,start[start$current==200,])
+ggsave(p5,width = 4, height = 4,
+       file="spike-frequency-adaptation-index.png") 
 ##Examples
 data1<-readABF(cell01[1])
 data1<-as.data.frame(data1,sweep=13)
@@ -181,4 +232,4 @@ p3<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
   theme_prism(base_size = 14)+
   xlab("time [s]") + ylab("memb. pot. [mV]")
 ggsave(p3,
-       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/examples_200pA.png")  
+       file="examples_200pA.png")  
