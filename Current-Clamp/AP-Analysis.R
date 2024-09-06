@@ -220,10 +220,12 @@ p5<-ggplot(start[start$current==200,],aes(genotype, adaptation_index,color=genot
 wilcox.test(adaptation_index~genotype,start[start$current==200,])
 ggsave(p5,width = 4, height = 4,
        file="spike-frequency-adaptation-index.png") 
-##Examples
-data1<-readABF(cell01[1])
+
+
+##Examples Cortex
+data1<-readABF(cells$file[1])
 data1<-as.data.frame(data1,sweep=13)
-data2<-readABF(cell14[1])
+data2<-readABF(cells$file[14])
 data2<-as.data.frame(data2,sweep=13)
 p3<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
   geom_line()+
@@ -233,3 +235,16 @@ p3<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
   xlab("time [s]") + ylab("memb. pot. [mV]")
 ggsave(p3,
        file="examples_200pA.png")  
+##Examples EC
+data1<-readABF(cells$file[11])
+data1<-as.data.frame(data1,sweep=17)
+data2<-readABF(cells$file[18])
+data2<-as.data.frame(data2,sweep=17)
+p3<-ggplot(data2,aes(`Time [s]`,`IN 2 [mV]`))+
+  geom_line()+
+  geom_line(data=data1,color="blue")+
+  ylim(c(-80,50))+
+  theme_prism(base_size = 14)+
+  xlab("time [s]") + ylab("memb. pot. [mV]")
+ggsave(p3,
+       file="examples_300pA.png")  

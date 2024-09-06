@@ -3,12 +3,14 @@ library(tidyverse)
 library(writexl)
 library(ggprism)
 library(pspline)
+library(readxl)
+library(ggbeeswarm)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN"
+dataset<-"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP_Input",]
@@ -60,7 +62,7 @@ for ( i in 1:length(cellname)){
 }
 p1<-ggplot(pass_properties,aes(genotype,resting_memb_pot, fill=genotype,col=genotype))+
   geom_boxplot()+
-  geom_point()+
+  geom_beeswarm()+
   scale_colour_manual(values = c("black", "blue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
   theme_prism(base_size = 14)+
@@ -74,7 +76,7 @@ p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype)
   scale_colour_manual(values = c("black", "blue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
   theme_prism(base_size = 14)+
-  ylim(c(0,400))+
+  ylim(c(0,600))+
   xlab("genotype") + ylab(expression(paste("input resistance [M",Omega,"]")))
 ggsave(p2,width = 4, height = 4,
        file="input_resis.png")

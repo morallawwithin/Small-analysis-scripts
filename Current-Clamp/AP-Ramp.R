@@ -4,12 +4,13 @@ library(readxl)
 library(ggprism)
 library(pspline)
 library(ggsignif)
+library(ggbeeswarm)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN"
+dataset<-"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
@@ -44,13 +45,13 @@ for ( i in 1:length(cellname)){
   
   #find first AP
   AP_ind_raw<-head(which(data$data[[1]][,1]>0),1)
-  range_after<-3000
+  range_after<-2500
   AP_data_cell<- data.frame(
     "volt" = c(data$data[[1]][(AP_ind_raw-600):(AP_ind_raw+range_after),1]),
     "curr" = command_curr[(AP_ind_raw-600):(AP_ind_raw+range_after)],
     "time" = (c(1:(sweep_length*samplerate))/samplerate)[(AP_ind_raw-600):(AP_ind_raw+range_after)],
     "ind" = c(1:(601+range_after)))
-  AP_data_cell$first_deriv<-predict(sm.spline(AP_data_cell$time, AP_data_cell$volt), AP_data_cell$time, 1)/samplerate*1000
+  AP_data_cell$first_deriv<-predict(sm.spline(AP_data_cell$time, AP_data_cell$volt), AP_data_cell$time, 1)/1000
   AP_data_cell$cell<-rep(cellname[i],length(AP_data_cell$volt))
   AP_data_cell$genotype<-rep(curr_cell$genotype,length(AP_data_cell$volt))
   AP_data<-rbind(AP_data,AP_data_cell)
@@ -88,10 +89,10 @@ AP_data.summary <- AP_data %>%
     .groups="keep"
   )                  
   
-  ggplot(AP_data,aes(volt,first_deriv, group=genotype, col=genotype))+
+ggplot(AP_data,aes(volt,first_deriv, group=genotype, col=genotype))+
     geom_path()
     
-p1<-  ggplot(data=AP_data,aes(volt,first_deriv))+
+p1<-ggplot(data=AP_data,aes(volt,first_deriv))+
     geom_path(col="lightgrey")+
     geom_path(data=AP_data.summary,aes(mn.volt,mn.firder,col=genotype))+
     geom_errorbar(data=AP_data.summary,aes(mn.volt,mn.firder,xmin=mn.volt-sd.volt/sqrt(length(cellname)),xmax=mn.volt+sd.volt/sqrt(length(cellname)),ymin=mn.firder-sd.firder/sqrt(length(cellname)),ymax=mn.firder+sd.firder/sqrt(length(cellname)), col=genotype))+
@@ -102,12 +103,25 @@ p1<-  ggplot(data=AP_data,aes(volt,first_deriv))+
 
 ggsave(p1,width = 10, height = 6,
        file="phase_plot.png")
-  
+ggplot(data=AP_data,aes(ind/samplerate,volt))+
+  geom_path(col="lightgrey")+
+  geom_path(data=AP_data.summary,aes(mn.volt,mn.firder,col=genotype))+
+  geom_errorbar(data=AP_data.summary,aes(mn.volt,mn.firder,xmin=mn.volt-sd.volt/sqrt(length(cellname)),xmax=mn.volt+sd.volt/sqrt(length(cellname)),ymin=mn.firder-sd.firder/sqrt(length(cellname)),ymax=mn.firder+sd.firder/sqrt(length(cellname)), col=genotype))+
+  geom_errorbarh(data=AP_data.summary,aes(mn.volt,mn.firder,xmin=mn.volt-sd.volt/sqrt(length(cellname)),xmax=mn.volt+sd.volt/sqrt(length(cellname)),ymin=mn.firder-sd.firder/sqrt(length(cellname)),ymax=mn.firder+sd.firder/sqrt(length(cellname)), col=genotype))+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  ylab("first derivate [V/s]")+xlab("membran potential [mV]")+
+  theme_prism(base_size = 14)
+
   ggplot(AP_data,aes(ind,volt, col=genotype))+
     geom_line(aes(group=cell))  
-  ggplot(AP_data[AP_data$cell=="cell35",],aes(ind,volt))+ #05
+  ggplot(AP_data[AP_data$cell=="cell12",],aes(ind,volt))+ #05
     geom_line(aes(group=cell)) +
     geom_line(data=AP_data[AP_data$cell=="cell17",], aes(group=cell),col="blue") +#22
+    theme_minimal()
+  #EC
+  ggplot(AP_data[AP_data$cell=="cell16",],aes(ind,volt))+ #05
+    geom_line(aes(group=cell)) +
+    geom_line(data=AP_data[AP_data$cell=="cell07",], aes(group=cell),col="blue") +#22
     theme_minimal()
   
 p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
