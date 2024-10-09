@@ -3,7 +3,7 @@ library(tidyverse)
 library(plyr)
 library(lsmeans)
 library(lme4)
-data<-read_xlsx("D:/Peter/Analysis/KCNA2/P405L_Mice/c-fos/Auswertung_final_20230919_PM.xlsx")#"G:/Arbeit/EEG/Auswertung_final_20230919_PM.xlsx")
+data<-read_xlsx("D:/Peter/Analysis/KCNA2/P405L_Mice/staining/c-fos/Auswertung_final_20230919_PM.xlsx")#"G:/Arbeit/EEG/Auswertung_final_20230919_PM.xlsx")
 colnames(data)[6] ="cfos"
 data$animal<-sub("#","",data$animal)
 data$animal<-as.factor(data$animal)
@@ -18,13 +18,16 @@ summary(areas)
 lsmeans(areas, pairwise ~ Genotype | Area, adjust = "tukey")
 
 
-ggplot(data, aes(Area,cfos,color=Genotype))+
+P1<-ggplot(data, aes(Area,cfos,color=Genotype))+
   geom_boxplot(aes(fill=Genotype))+
   geom_point(aes(group=Genotype),position=position_dodge(width=0.75))+
   theme_classic()+
   scale_color_manual(values = c("black","blue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
   ylab("c-fos positive neurons [%]")
+P1
+ggsave(P1,width= 10,height=4,units = "cm",
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/staining/c-fos/areas.svg")
 
 data_eeg<-read_xlsx("D:/Peter/Analysis/KCNA2/P405L_Mice/EEG/EEG-Data.xlsx")
 data_eeg$`Animal-Nr.`<-as.character(data_eeg$`Animal-Nr.`)

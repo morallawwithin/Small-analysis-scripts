@@ -3,9 +3,9 @@ library(multimode)
 library(lme4)
 library(lmerTest)
 library(cowplot)
-setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/Caspr1-Kcna2-staining")
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/staining/Caspr1-Kcna2-staining")
 df <-
-  list.files(path = "D:/Peter/Analysis/KCNA2/P405L_Mice/Caspr1-Kcna2-staining", pattern = "*.csv") %>% 
+  list.files(path = "D:/Peter/Analysis/KCNA2/P405L_Mice/staining/Caspr1-Kcna2-staining", pattern = "*.csv") %>% 
   map_df(~read_csv(.))
 df$position<-rep(1:351,length(df$Line_Intensity)/351)/35.1
 df$Genotype<-as.factor(df$Genotype)
@@ -62,7 +62,7 @@ a<-ggplot(nodes,aes(Genotype,nodes_nr,color=Genotype,fill=Genotype))+
   ylab("Kv1.2 patches per node")+
   theme_half_open()+
   theme(legend.position = "none")
-
+a
 ggsave(a, filename = "kcna2_patches_per_node.svg", height = 4, width=2)
 
 wilcox.test(nodes_nr~Genotype, data = nodes, correct = FALSE)

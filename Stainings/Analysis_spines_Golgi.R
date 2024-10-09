@@ -4,6 +4,7 @@ library(ggprism)
 library(ggbeeswarm)
 library(lsmeans)
 library(lme4)
+library(ggalluvial)
 mainDir<-"D:/Peter/Analysis/KCNA2/P405L_Mice/staining/Golgi" #ordner mit files
 subDir<- "0827S1_Golgi" #name des files
 
@@ -78,8 +79,29 @@ P3<-ggplot(data_summary2, aes(genotype,perc, fill = Type)) +
             width = .5) +
   geom_bar(stat="identity", width = 0.5, color = "white") +
   scale_fill_brewer(palette = "RdBu")+
-  ylab("percentage")+xlab("genotype")+
-  theme_prism(base_size = 14)
+  ylab("percentage")+
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")
 ggsave(P3,width = 5, height=4,
-       file="spine_composition.png")  
+       file="spine_composition.svg")  
 P3  
+
+
+data_summary<-  data_summary %>% 
+  group_by(mouse_neuron) %>% 
+  mutate(perc = n_type/sum(n_type)*100) 
+
+
+P4<-ggplot(data_summary,aes(Type,perc,color=genotype))+
+  geom_boxplot(aes(fill=genotype))+
+  geom_point(aes(group=genotype),position=position_dodge(width=0.75))+
+  scale_colour_manual(values = c("black", "blue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
+  ylab("percentage of spines per neuron [%]")+xlab("spine types")+
+  theme_prism(base_size = 14)
+ggsave(P4,width = 10, height=4,
+       file="spine_percentage.png") 
+P4
+type_prop<-lmer(perc~Type*genotype+(1|Mouse),data=data_summary)
+summary(type_prop)
+lsmeans(type_prop, pairwise ~ genotype | Type, adjust = "tukey")
