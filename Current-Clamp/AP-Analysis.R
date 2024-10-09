@@ -107,7 +107,7 @@ for ( i in 1:length(cellname)){
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_thres)<-curr
   AP_thres_names<-as.character( names(unlist(AP_thres)))
-  AP_thres_nr<-sub("[123]?[2570][05]","",AP_thres_names)
+  AP_thres_nr<-sub("-?[123]?[2570][05]","",AP_thres_names)
   AP_thres_nr[AP_thres_nr=='']<-1
   AP_properties<-rbind(AP_properties,
                        data.frame(
@@ -120,7 +120,7 @@ for ( i in 1:length(cellname)){
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_isi)<-curr
   AP_isi_names<-as.character( names(unlist(AP_isi)))
-  AP_isi_nr<-sub("[123]?[2570][05]","",AP_isi_names)
+  AP_isi_nr<-sub("-?[123]?[2570][05]","",AP_isi_names)
   AP_isi_nr[AP_isi_nr=='']<-1
   AP_IFF<-rbind(AP_IFF,
                        data.frame(
@@ -132,23 +132,28 @@ for ( i in 1:length(cellname)){
                        ))
  print(paste0("finished analysis of ",curr_cell$file)) 
 }    
+sweep$genotype<-factor(sweep$genotype,levels = c("Kcna2+/P405L","Kcna2+/+"))
 
-p1<-ggplot(sweep,aes(current,AP,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
+p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
                fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
                geom = 'errorbar',  width = 30,size=1,  position = position_dodge(width = 0.5)) +
   stat_summary(fun = mean, fun.min = mean, fun.max = mean,
-               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=as.factor(genotype))) +
+               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
   stat_summary(fun = mean,
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
-  scale_colour_manual(values = c("black", "blue")) +
+  scale_colour_manual(values = c( "blue","black")) +
   theme_prism(base_size = 14)+
-  xlab("injected current [pA]") + ylab("number of AP")
+  coord_cartesian(clip = 'off',ylim=c(0,40), xlim = c(0,310))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_x_continuous(expand = c(0, 0))+
+  theme(legend.position = "none")+
+  xlab("injected current [pA]") + ylab("number of APs")
 
 model_AP<-lm(AP~current*genotype,data= sweep)
 summary(model_AP)
-ggsave(p1,width = 6, height = 4,
+ggsave(p1,width = 4, height = 4,
        file="APnumber.png")
 
 p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
@@ -224,17 +229,103 @@ ggsave(p5,width = 4, height = 4,
 
 ##Examples Cortex
 data1<-readABF(cells$file[1])
-data1<-as.data.frame(data1,sweep=13)
+data11<-as.data.frame(data1,sweep=13)
+data12<-as.data.frame(data1,sweep=3)
+data13<-as.data.frame(data1,sweep=7)
+data14<-as.data.frame(data1,sweep=5)
+data15<-as.data.frame(data1,sweep=15)
 data2<-readABF(cells$file[14])
-data2<-as.data.frame(data2,sweep=13)
-p3<-ggplot(data1,aes(`Time [s]`,`INcc 0 [mV]`))+
+data21<-as.data.frame(data2,sweep=13)
+data22<-as.data.frame(data2,sweep=3)
+data23<-as.data.frame(data2,sweep=7)
+data24<-as.data.frame(data2,sweep=5)
+data25<-as.data.frame(data2,sweep=15)
+p3<-ggplot(data11,aes(`Time [s]`,`INcc 0 [mV]`))+
   geom_line()+
-  geom_line(data=data2,color="blue")+
-  ylim(c(-80,50))+
+  geom_line(data=data12)+
+  geom_line(data=data13)+
+  geom_line(data=data21,color="blue")+
+  geom_line(data=data22,color="blue")+
+  geom_line(data=data23,color="blue")+
+  ylim(c(-100,50))+
+  geom_segment(aes(x = 0.9, y = -95, xend = 1, yend = -95),lwd=2,col= "black")+ 
+  geom_segment(aes(x = 1, y = -95, xend = 1, yend = -75),lwd=2,col= "black") + 
   theme_prism(base_size = 14)+
-  xlab("time [s]") + ylab("memb. pot. [mV]")
-ggsave(p3,
-       file="examples_200pA.png")  
+  #geom_text(x=0.034, y=-65, label="20 mV",col= "black")+
+  #geom_text(x=0.028, y=-78, label="0.1 s",col= "black")+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = "none")
+p3
+ggsave(p3,width = 10.8, height = 5.4,
+       file="examples_-50_50_150pA.svg")  
+
+p4<-ggplot(data21,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_line(color="blue",size=2)+
+  geom_line(data=data22,color="blue",size=2)+
+  geom_line(data=data23,color="blue",size=2)+
+  geom_line(data=data24,color="blue",size=2)+
+  ylim(c(-100,50))+
+  geom_segment(aes(x = 0.9, y = -95, xend = 1, yend = -95),lwd=2,col= "black")+ 
+  geom_segment(aes(x = 1, y = -95, xend = 1, yend = -75),lwd=2,col= "black") + 
+  theme_prism(base_size = 14)+
+  #geom_text(x=0.034, y=-65, label="20 mV",col= "black")+
+  #geom_text(x=0.028, y=-78, label="0.1 s",col= "black")+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = "none")
+ggsave(p4,width = 7, height = 5,
+       file="examples_p405l_-50_50_200pA.png")
+p5<-ggplot(data11,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_line(color="black",size=2)+
+  geom_line(data=data12,color="black",size=2)+
+  geom_line(data=data13,color="black",size=2)+
+  geom_line(data=data14,color="black",size=2)+
+  ylim(c(-100,50))+
+  theme_prism(base_size = 14)+
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        legend.position = "none")
+ggsave(p5,width = 7, height = 5,
+       file="examples_wt_-50_50_150pA.png")
+p6<-ggplot(data15,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_line(color="black",size=2)+
+  ylim(c(-100,50))+
+  theme_prism(base_size = 14)+
+  theme(axis.title.x=element_blank(),        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),        axis.line=element_blank(),
+        axis.title.y=element_blank(),        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),        legend.position = "none")
+ggsave(p6,width = 7, height = 5,
+       file="examples_wt_250pA.png")
+p7<-ggplot(data25,aes(`Time [s]`,`INcc 0 [mV]`))+
+  geom_line(color="blue",size=2)+
+  ylim(c(-100,50))+
+  theme_prism(base_size = 14)+
+  theme(axis.title.x=element_blank(),        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),        axis.line=element_blank(),
+        axis.title.y=element_blank(),        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),        legend.position = "none")
+ggsave(p7,width = 7, height = 5,
+       file="examples_p405l_250pA.png")
+
+
+
 ##Examples EC
 data1<-readABF(cells$file[11])
 data1<-as.data.frame(data1,sweep=17)
