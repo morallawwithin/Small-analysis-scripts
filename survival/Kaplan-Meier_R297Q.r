@@ -11,7 +11,7 @@ setwd("G:/Arbeit/Survival")
 data<-read_xlsx("R297Q_20241120.xlsx")
 data$Genotype<-as.factor(data$Genotype)
 data<-data[data$Genotype %in% c("C57Bl/6","SWISS","SWISS + 4 AP"),]
-data<-data[data$Sex=="m",]
+#data<-data[data$Sex=="m",]
 surv_object <- Surv(time = data$Lifespan, event = data$Endpoint)
 fit1<-survfit(surv_object ~ Genotype, data = data)
 survp<-
@@ -31,7 +31,7 @@ survp$plot<-survp$plot +
   scale_color_manual(values = c("lightgrey","red","darkred"))
 survp$plot
 
-ggsave("survplot_R297Q_males_20241120.png", survp$plot, height = 7.5, width = 7.5, units="cm")
+ggsave("survplot_R297Q_20241120.png", survp$plot, height = 7.5, width = 7.5, units="cm")
 
 
 survdiff(surv_object ~ Genotype, data = data)
