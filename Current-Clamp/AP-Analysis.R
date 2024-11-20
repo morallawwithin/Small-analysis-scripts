@@ -151,8 +151,11 @@ p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype
   theme(legend.position = "none")+
   xlab("injected current [pA]") + ylab("number of APs")
 
+sweep$current<-as.factor(sweep$current)
 model_AP<-lm(AP~current*genotype,data= sweep)
 summary(model_AP)
+lsmeans(model_AP, pairwise ~ genotype | current, adjust = "tukey")
+
 ggsave(p1,width = 4, height = 4,
        file="APnumber.png")
 
