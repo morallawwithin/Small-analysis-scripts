@@ -4,17 +4,18 @@ library(readxl)
 library(ggprism)
 library(pspline)
 library(ggbeeswarm)
+library(lsmeans)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
 ##select the cells
 ####################
-dataset<-"EC_L5PN"#"Cortex_L2&3_PN"
-data <- read_excel(paste0(dataset,".xlsx"))
+dataset<-"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
+data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
-data<-data[data$protocol=="AP",]
-cells<-data[,c(2,3)]
-cellname<-data$cell
+data.list<-data.list[data.list$protocol=="AP",]
+cells<-data.list[,c(2,3)]
+cellname<-data.list$cell
 
 ##########
 #prepare everything for the loop
@@ -26,9 +27,22 @@ colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 
+##########
+#Select ages, if you want
+##########
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+#cellname<-data.list$cell[data.list$age<17,]
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#cellname<-data.list$cell[data.list$age>16,]
+
 ########
 #loop starts here
 #######
+if(file.exists(paste0(dataset,"_sweep.rds"))){
+  sweep<-readRDS(paste0(dataset,"_sweep.rds"))
+  AP_properties<-readRDS(paste0(dataset,"_AP_properties.rds"))
+  AP_IFF<-readRDS(paste0(dataset,"_AP_IFF.rds"))
+}else if (!length(cellname)==length(unique(AP_IFF$cell))){
 for ( i in 1:length(cellname)){
 #select the cell
   curr_cell<-cells[i,]
@@ -58,13 +72,13 @@ for ( i in 1:length(cellname)){
         #you loose one index this way, therefore you have to add them again
         AP_ind_diff<-c(1000,diff(AP_ind_raw))
         #select difference larger than 2ms
-        Ap_ind_log<-AP_ind_diff>200 
+        Ap_ind_log<-AP_ind_diff>(0.002*samplerate) 
         AP_ind_zero<-AP_ind_raw[Ap_ind_log]
         #prepare for 2. criterion which also finds thresholds
         AP_ind<-c()
         for (iii in 1:length(AP_ind_zero)){
           #take data 5ms before first value above 0mV
-          AP_data<-sweep.data$first_derivate[(AP_ind_zero[iii]-500):(AP_ind_zero[iii])]
+          AP_data<-sweep.data$first_derivate[(AP_ind_zero[iii]-(0.005*samplerate)):(AP_ind_zero[iii])]
           #select indices that are above the firing threshold defined as 20 V/s
           AP_thres_ind<-which(AP_data>20)
           #calculate the difference between the indices >20 V/s and add one to the start
@@ -72,7 +86,7 @@ for ( i in 1:length(cellname)){
           #select the last index of the ones where thedifference to the previous index was >1
           AP_ind_thres<-AP_thres_ind[tail(which(AP_thres_diff>1),1)]
           #store this index
-          AP_ind[iii]<-AP_ind_zero[iii]-500+AP_ind_thres #threshold
+          AP_ind[iii]<-AP_ind_zero[iii]-(0.005*samplerate)+AP_ind_thres #threshold
       }
         #store the number of APs
         AP_nr[ii]<-length(AP_ind)
@@ -133,6 +147,14 @@ for ( i in 1:length(cellname)){
  print(paste0("finished analysis of ",curr_cell$file)) 
 }    
 sweep$genotype<-factor(sweep$genotype,levels = c("Kcna2+/P405L","Kcna2+/+"))
+sweep$age<-data.list$age[match(sweep$cell,data.list$cell)]
+saveRDS(sweep,paste0(dataset,"_sweep.rds"))
+saveRDS(AP_properties,paste0(dataset,"_AP_properties.rds"))
+saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
+}
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+#sweep<-sweep_all[sweep_all$age<17,]
+
 
 p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
   stat_summary(fun = mean, 
@@ -145,20 +167,22 @@ p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c( "blue","black")) +
   theme_prism(base_size = 14)+
-  coord_cartesian(clip = 'off',ylim=c(0,40), xlim = c(0,310))+
+  coord_cartesian(clip = 'off',ylim=c(0,45), xlim = c(0,310))+
   scale_y_continuous(expand = c(0, 0))+
   scale_x_continuous(expand = c(0, 0))+
   theme(legend.position = "none")+
   xlab("injected current [pA]") + ylab("number of APs")
-
-sweep$current<-as.factor(sweep$current)
+p1
+#sweep$current<-as.factor(sweep$current)
 model_AP<-lm(AP~current*genotype,data= sweep)
 summary(model_AP)
+#anova(model_AP)
 lsmeans(model_AP, pairwise ~ genotype | current, adjust = "tukey")
 
 ggsave(p1,width = 4, height = 4,
        file="APnumber.png")
-
+ggsave(p1,width = 4, height = 4,
+       file="APnumber.svg")
 p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
   geom_boxplot()+
   scale_colour_manual(values = c("black", "blue")) +
@@ -204,7 +228,7 @@ p4<-ggplot(start,aes(genotype, SFI,color=genotype))+
   geom_beeswarm()+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-  ylab("SFA index")+
+  ylab("SFA")+
   theme_prism(base_size = 14)
 ggsave(p4,width = 4, height = 4,
        file="spike-frequency-adaptation.png") 
@@ -218,13 +242,15 @@ for (x in AP_IFF_SFI$cell_curr){
   })
   start$adaptation_index[start$cell_curr==x]<-sum(adaptation_ISI)/(N-1)    
   }
-p5<-ggplot(start[start$current==200,],aes(genotype, adaptation_index,color=genotype))+
+p5<-ggplot(start[start$current==200,],aes(genotype, adaptation_index,color=genotype,fill=genotype))+
   geom_boxplot()+
-  geom_beeswarm()+
+  geom_beeswarm(cex=5,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
   ylab("SFA index")+
-  theme_prism(base_size = 14)
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")    
+p5
 wilcox.test(adaptation_index~genotype,start[start$current==200,])
 ggsave(p5,width = 4, height = 4,
        file="spike-frequency-adaptation-index.png") 

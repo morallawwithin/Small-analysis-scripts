@@ -5,12 +5,13 @@ library(ggprism)
 library(pspline)
 library(ggsignif)
 library(ggbeeswarm)
+library(data.table)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"CA1_PN"#"Cortex_L2&3_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
@@ -35,13 +36,16 @@ for ( i in 1:length(cellname)){
   #read data of one cell  
   data<-readABF(curr_cell$file)
   sweep_length<-length(data$data[[1]][,1])/samplerate
-  command_curr  <-c(rep(0,0.07*samplerate),c(1:(samplerate*4))/(samplerate*4/200),rep(0,(0.5*samplerate-0.07*samplerate)))
+  command_curr  <-c(rep(0,0.07*samplerate),c(1:(samplerate*1.5))/(samplerate*1.5/200),rep(0,(0.5*samplerate-0.07*samplerate)))
   #plot(data$data[[1]][,2]*1000,type="l")
   #lines(command_curr,col="red")
   
   #find first AP
   AP_ind_raw<-head(which(data$data[[1]][,1]>0),1)
   range_after<-samplerate*0.03
+  if (dataset=="CA1_PN"){
+    range_after<-samplerate*0.013 
+  }
   AP_data_cell<- data.frame(
     "volt" = c(data$data[[1]][(AP_ind_raw-samplerate*0.006):(AP_ind_raw+range_after),1]),
     "curr" = command_curr[(AP_ind_raw-samplerate*0.006):(AP_ind_raw+range_after)],
@@ -77,9 +81,11 @@ for ( i in 1:length(cellname)){
   )
   AP_properties<-rbind(AP_properties,AP_properties_cell)
   }
-#AP_data<-AP_data2[AP_data2$age==16,]
-
-#AP_properties<-AP_properties[AP_properties$age>15,]
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#AP_data_all<-AP_data
+#AP_data<-AP_data_all[AP_data_all$age>16,]
+#AP_properties_all<-AP_properties
+#AP_properties<-AP_properties_all[AP_properties_all$age>16,]
 
 AP_data.summary <- AP_data %>%
   group_by(genotype,ind) %>%
@@ -104,13 +110,14 @@ p1<-ggplot(data=AP_data,aes(volt,first_deriv))+
     scale_colour_manual(values = c("black", "blue","lightblue")) +
     ylab("first derivate [V/s]")+xlab("membran potential [mV]")+
     theme_prism(base_size = 14)
-
+p1
 ggsave(p1,width = 10, height = 6,
        file="phase_plot.png")
+ggsave(p1,width = 10, height = 6,
+       file="phase_plot.svg")
 
 
-
-  
+#second derivative  
 p11<-ggplot(data=AP_data.summary,aes(ind/samplerate,mn.secder,col=genotype,group=genotype))+
   geom_path(data=AP_data,aes(ind/samplerate,second_deriv,group=cell),col="lightgrey")+
   geom_path(data=AP_data.summary,aes(ind/samplerate,mn.secder,col=genotype,group=genotype),size=1.5)+
@@ -127,6 +134,7 @@ p11<-ggplot(data=AP_data.summary,aes(ind/samplerate,mn.secder,col=genotype,group
         axis.ticks.y=element_blank(),
         legend.position = "none")
 p11
+#mean volt, mean first derivative, mean second derivative
 AP_data.summary2<-melt(setDT(AP_data.summary[,c(1,2,4,6,8)]), id.vars = c("genotype","ind"), variable.name = "mean")
 p12<-ggplot(data=AP_data.summary2,aes(ind/samplerate,value))+
   geom_path(size=1.5,aes(color=genotype))+
@@ -141,9 +149,12 @@ p12<-ggplot(data=AP_data.summary2,aes(ind/samplerate,value))+
         axis.ticks.x=element_blank(),
         legend.position = "none")+
   xlab("time [s]")
+p12
 ggsave(p12,width = 4, height = 10,
        file="mean_AP_first_second.png")
-
+ggsave(p12,width = 4, height = 10,
+       file="mean_AP_first_second.svg")
+#mean AP shape
 p10<-ggplot(data=AP_data.summary,aes(ind/samplerate,mn.volt,col=genotype,group=genotype))+
   geom_path(data=AP_data,aes(ind/samplerate,volt,group=cell),col="lightgrey")+
   geom_path(data=AP_data.summary,aes(ind/samplerate,mn.volt,col=genotype,group=genotype),size=1.5)+
@@ -168,17 +179,19 @@ p10<-ggplot(data=AP_data.summary,aes(ind/samplerate,mn.volt,col=genotype,group=g
 p10
 ggsave(p10,width = 6, height = 10,
        file="mean_AP.png")
-  ggplot(AP_data,aes(ind,volt, col=genotype))+
-    geom_line(aes(group=cell))  
-  ggplot(AP_data[AP_data$cell=="cell12",],aes(ind,volt))+ #05
-    geom_line(aes(group=cell)) +
-    geom_line(data=AP_data[AP_data$cell=="cell17",], aes(group=cell),col="blue") +#22
-    theme_minimal()
-  #EC
-  ggplot(AP_data[AP_data$cell=="cell16",],aes(ind,volt))+ #05
-    geom_line(aes(group=cell)) +
-    geom_line(data=AP_data[AP_data$cell=="cell07",], aes(group=cell),col="blue") +#22
-    theme_minimal()
+ggsave(p10,width = 6, height = 10,
+       file="mean_AP.svg")
+  # ggplot(AP_data,aes(ind,volt, col=genotype))+
+  #   geom_line(aes(group=cell))  
+  # ggplot(AP_data[AP_data$cell=="cell12",],aes(ind,volt))+ #05
+  #   geom_line(aes(group=cell)) +
+  #   geom_line(data=AP_data[AP_data$cell=="cell17",], aes(group=cell),col="blue") +#22
+  #   theme_minimal()
+  # #EC
+  # ggplot(AP_data[AP_data$cell=="cell16",],aes(ind,volt))+ #05
+  #   geom_line(aes(group=cell)) +
+  #   geom_line(data=AP_data[AP_data$cell=="cell07",], aes(group=cell),col="blue") +#22
+  #   theme_minimal()
   
 p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -189,9 +202,12 @@ p2<-ggplot(AP_properties,aes(genotype,rheobase,fill=genotype, col=genotype))+
     ylab("rheobase [pA]")+
     theme_prism(base_size = 14)+
     theme(legend.position = "none")
-  wilcox.test(rheobase~genotype,AP_properties)
+p2  
+wilcox.test(rheobase~genotype,AP_properties)
   ggsave(p2,width = 3, height = 4,
          file="rheobase.png")
+  ggsave(p2,width = 3, height = 4,
+         file="rheobase.svg")
  
 p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
     geom_boxplot()+
@@ -202,34 +218,71 @@ p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
     ylab("AP threshold [mV]")+
     theme_prism(base_size = 14)+
   theme(legend.position = "none")
-  wilcox.test(threshold~genotype,AP_properties)
+p3
+wilcox.test(threshold~genotype,AP_properties)
   ggsave(p3,width = 3, height = 4,
          file="threshold.png")
+  ggsave(p3,width = 3, height = 4,
+         file="threshold.svg")
   
-p4<-  ggplot(AP_properties,aes(genotype,FWHA,fill=genotype, col=genotype))+
+p4<-  ggplot(AP_properties,aes(genotype,FWHA*1000,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
-    ylab("FWHA [s]")+
+    ylab("FWHA [ms]")+
     theme_prism(base_size = 14)+
   theme(legend.position = "none")
-  wilcox.test(FWHA~genotype,AP_properties)
+p4  
+wilcox.test(FWHA~genotype,AP_properties)
   ggsave(p4,width = 3, height = 4,
          file="FWHA.png")
-
-p5<-  ggplot(AP_properties,aes(genotype,fAHP,fill=genotype, col=genotype))+
+  ggsave(p4,width = 3, height = 4,
+         file="FWHA.svg")
+p41<-ggplot(AP_properties,aes(age,FWHA*1000, col=as.factor(genotype),fill=as.factor(genotype)))+
+    geom_point(shape=16, size=4)+
+    geom_smooth(method='lm', formula= y~x)+
+    scale_colour_manual(values = c("black", "blue")) +
+    scale_fill_manual(values = c("lightgrey",rgb(191/255,191/255,1,1))) +
+    theme_prism(base_size = 14)+
+    xlim(c(12,20))+  
+    xlab("age [d]") + ylab("FWHA [ms]")+
+    theme(legend.position = "none") 
+p41
+fwha.mdl<-lm(FWHA~age*genotype,data=AP_properties)
+summary(fwha.mdl)
+ggsave(p41,width = 4, height = 4,
+       file="fwha_vs_age.png")
+p5<-  ggplot(AP_properties,aes(genotype,abs(fAHP),fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     theme_prism(base_size = 14)+
+  ylab("afterhyperpolarization [mV]")+
   scale_y_continuous(expand = c(0, 0),limits = c(0,20))+
   theme(legend.position = "none")    
-  wilcox.test(fAHP~genotype,AP_properties)
+p5  
+wilcox.test(fAHP~genotype,AP_properties)
   ggsave(p5,width = 3, height = 4,
          file="fAHP.png")
-    
+  ggsave(p5,width = 3, height = 4,
+         file="fAHP.svg")
+p55<-ggplot(AP_properties,aes(age,abs(fAHP), col=as.factor(genotype),fill=as.factor(genotype)))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = c("black", "blue")) +
+  scale_fill_manual(values = c("lightgrey",rgb(191/255,191/255,1,1))) +
+  theme_prism(base_size = 14)+
+  scale_y_continuous(expand = c(0, 0),limits = c(0,20))+
+  xlim(c(12,20))+  
+  xlab("age [d]") + ylab("afterhyperpolarization [mV]")+
+  theme(legend.position = "none")  
+p55      
+ggsave(p55,width = 4, height = 4,
+       file="ahp_vs_age.png")
+ahp.mdl<-lm(fAHP~age*genotype,data=AP_properties)
+summary(ahp.mdl)
 p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -237,10 +290,12 @@ p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype)
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     theme_prism(base_size = 14)+
   theme(legend.position = "none") 
-  wilcox.test(risingetime~genotype,AP_properties)
+p6  
+wilcox.test(risingetime~genotype,AP_properties)
   ggsave(p6,width = 3, height = 4,
          file="risingetime.png")
-    
+  ggsave(p6,width = 3, height = 4,
+         file="risingetime.svg")  
 p7<-  ggplot(AP_properties,aes(genotype,repolarizingtime,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -248,10 +303,12 @@ p7<-  ggplot(AP_properties,aes(genotype,repolarizingtime,fill=genotype, col=geno
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     theme_prism(base_size = 14)+
   theme(legend.position = "none") 
+p7
 wilcox.test(repolarizingtime~genotype,AP_properties,exact=T)  
 ggsave(p7,width = 3, height = 4,
        file="repolarizingtime.png")
-  
+ggsave(p7,width = 3, height = 4,
+       file="repolarizingtime.svg")  
 p8<-  ggplot(AP_properties,aes(genotype,amplitude,fill=genotype, col=genotype))+
   geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -259,10 +316,12 @@ p8<-  ggplot(AP_properties,aes(genotype,amplitude,fill=genotype, col=genotype))+
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
   theme_prism(base_size = 14)+
   theme(legend.position = "none") 
+p8
 wilcox.test(amplitude~genotype,AP_properties,exact=T)  
 ggsave(p8,width = 3, height = 4,
        file="amplitude.png")
-
+ggsave(p8,width = 3, height = 4,
+       file="amplitude.svg")
 data1<-readABF(cells$file[1])
 data1<-as.data.frame(data1)
 data2<-readABF(cells$file[12])

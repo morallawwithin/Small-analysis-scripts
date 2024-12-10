@@ -13,7 +13,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP_Input",]
@@ -78,8 +78,12 @@ p1<-ggplot(pass_properties,aes(genotype,resting_memb_pot, fill=genotype,col=geno
   ylim(c(-100,-50))+
   xlab("genotype") + ylab("rest. memb. pot.")+
   theme(legend.position = "none") 
+p1
+wilcox.test(resting_memb_pot~genotype,pass_properties,exact=T)
 ggsave(p1,width = 3, height = 4,
        file="resting_memb.png")
+ggsave(p1,width = 3, height = 4,
+       file="resting_memb.svg")
 p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype))+
   geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -89,8 +93,12 @@ p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype)
   ylim(c(0,600))+
   xlab("genotype") + ylab(expression(paste("input resistance [M",Omega,"]")))+
   theme(legend.position = "none")
+p2
+wilcox.test(input_resis~genotype,pass_properties,exact=T)
 ggsave(p2,width = 3, height = 4,
        file="input_resis.png")
+ggsave(p2,width = 3, height = 4,
+       file="input_resis.svg")
 p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
@@ -120,6 +128,8 @@ p5<-ggplot(sag_data,aes(steady_state,peak_sag, col=as.factor(genotype),fill=as.f
 p5
 ggsave(p5,width = 6, height = 4,
        file="sag-pot_vs_memb.png")
+ggsave(p5,width = 6, height = 4,
+       file="sag-pot_vs_memb.svg")
 sag.mdl<-lm(peak_sag~steady_state*genotype,data=sag_data)
 summary(sag.mdl)
 
