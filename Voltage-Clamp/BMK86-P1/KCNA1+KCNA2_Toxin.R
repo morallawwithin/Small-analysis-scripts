@@ -3,6 +3,7 @@ library(tidyverse)
 library(writexl)
 library(ggprism)
 library(RColorBrewer)
+library(lsmeans)
 condition<-c(
   "base",
   "extra.0",
@@ -23,22 +24,22 @@ cell01<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_7/",
                     condition ), ncol = 2)
 cell02<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(04[5-9]|5[0-5])"),
+                                      pattern="_00(4[5-9]|5[0-5])"),
                            sep=""),
                      condition ), ncol = 2)
 cell03<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(05[8-9]|6[0-8])"),
+                                      pattern="_00(5[8-9]|6[0-8])"),
                            sep=""),
                      condition ), ncol = 2)
 cell04<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(07[0-9]|80)"),
+                                      pattern="_00(7[0-9]|80)"),
                            sep=""),
                      condition ), ncol = 2)
 cell05<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(08[2-9]|9[0-2])"),
+                                      pattern="_00(8[2-9]|9[0-2])"),
                            sep=""),
                      condition ), ncol = 2)
 cell06<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
@@ -48,7 +49,7 @@ cell06<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                      condition ), ncol = 2)
 cell07<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12",
-                                      pattern="_00(03[6-9]|4[0-6])"),
+                                      pattern="_00(3[6-9]|4[0-6])"),
                            sep=""),
                      condition ), ncol = 2)
 
@@ -136,6 +137,17 @@ ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,
   theme_prism(base_size = 14)
 
 ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2+KCNA1.png", width = 5, height = 3)
+
+kcna12_tox<-lm(norm.Amp~Condition*Time, data = cell_values)
+anova(kcna12_tox)
+lsmeans(kcna12_tox, pairwise ~ Condition | Time, adjust = "tukey")
+
+summary <- cell_values %>%
+  group_by( Condition, Time) %>% 
+  summarise(meanAmp = mean(norm.Amp),
+            sdAmp = sd(norm.Amp),
+            nAMp = n()) %>%
+  mutate(SEMAmp = sdAmp/sqrt(nAMp))
 
 #summary(model)
 #sweep$PredictionsNLS <- predict(model)

@@ -6,11 +6,17 @@ library(pspline)
 setwd("D:/Peter/Data/Scna1a/M-current")
 
 #select the cell
-cell01<-"D:/Peter/Data/Scna1a/M-current/24319003 - Copia.abf"
-cell02<-"D:/Peter/Data/Scna1a/M-current/24319003 _filtered.abf"
+cell01<-"G:/Peter/20240322 - Copia/24322009 - Copia - filtered - leak sub.abf"
+cell02<-"G:/Peter/20240322 - Copia/24322011 - Copia - filtered - leak sub.abf"
+cell03<-"G:/Peter/20240322 - Copia/24322014 - Copia - filtered - leak sub.abf"
+cell04<-"G:/Peter/20240322 - Copia/24322016 - Copia - filtered - leak sub.abf"
+cell05<-"G:/Peter/20240322 - Copia/24322018 - Copia - filtered - leak sub.abf"
+cell06<-"G:/Peter/20240322 - Copia/24322021 - Copia - filtered - leak sub_2.abf"
+cell07<-"G:/Peter/20240322 - Copia/24322022 - Copia - filtered - leak sub.abf"
+cell08<-"G:/Peter/20240322 - Copia/24322024 - Copia - filtered - leak sub.abf"
 
-cells<-list(cell01, cell02)
-cellname<-c("cell1","cell2")
+cells<-list(cell01, cell02, cell03, cell04, cell05, cell06, cell07, cell08)
+cellname<-c("cell1","cell2","cell3","cell4", "cell5", "cell6", "cell7", "cell8")
 
 sweep<-data.frame(matrix(ncol = 4, nrow = 0))
 colnames(sweep)<-c("cell","voltage","current","holding+20")

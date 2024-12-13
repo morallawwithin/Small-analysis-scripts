@@ -152,9 +152,6 @@ saveRDS(sweep,paste0(dataset,"_sweep.rds"))
 saveRDS(AP_properties,paste0(dataset,"_AP_properties.rds"))
 saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
 }
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
-#sweep<-sweep_all[sweep_all$age<17,]
-
 
 p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
   stat_summary(fun = mean, 

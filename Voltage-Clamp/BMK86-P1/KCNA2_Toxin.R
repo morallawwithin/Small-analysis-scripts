@@ -3,6 +3,7 @@ library(tidyverse)
 library(writexl)
 library(ggprism)
 library(RColorBrewer)
+library(lsmeans)
 condition<-c(
   "base",
   "extra.0",
@@ -180,6 +181,18 @@ ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,
   theme_prism(base_size = 14)
 
 ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2.png", width = 5, height = 3)
+
+kcna2_tox<-lm(norm.Amp~Condition*Time, data = cell_values)
+anova(kcna2_tox)
+lsmeans(kcna2_tox, pairwise ~ Condition | Time, adjust = "tukey")
+
+summary <- cell_values %>%
+  group_by( Condition, Time) %>% 
+  summarise(meanAmp = mean(norm.Amp),
+            sdAmp = sd(norm.Amp),
+            nAMp = n()) %>%
+  mutate(SEMAmp = sdAmp/sqrt(nAMp))
+
 
 #summary(model)
 #sweep$PredictionsNLS <- predict(model)
