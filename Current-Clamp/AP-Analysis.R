@@ -8,12 +8,23 @@ library(lsmeans)
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 
 ####################
-##select the cells
+##select the dataset
 ####################
 dataset<-"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
 data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data.list<-data.list[data.list$protocol=="AP",]
+
+##########
+#Select ages, if you want
+##########
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+#cellname<-data.list$cell[data.list$age<17,]
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+data.list<-data.list[data.list$age>16,]
+####################
+##select the cells
+####################
 cells<-data.list[,c(2,3)]
 cellname<-data.list$cell
 
@@ -26,14 +37,6 @@ AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
-
-##########
-#Select ages, if you want
-##########
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
-#cellname<-data.list$cell[data.list$age<17,]
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
-#cellname<-data.list$cell[data.list$age>16,]
 
 ########
 #loop starts here
@@ -170,10 +173,11 @@ p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype
   theme(legend.position = "none")+
   xlab("injected current [pA]") + ylab("number of APs")
 p1
-#sweep$current<-as.factor(sweep$current)
+
+sweep$current<-as.factor(sweep$current)
 model_AP<-lm(AP~current*genotype,data= sweep)
 summary(model_AP)
-#anova(model_AP)
+anova(model_AP)
 lsmeans(model_AP, pairwise ~ genotype | current, adjust = "tukey")
 
 ggsave(p1,width = 4, height = 4,

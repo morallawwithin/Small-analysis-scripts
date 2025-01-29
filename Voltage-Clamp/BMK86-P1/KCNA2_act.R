@@ -116,7 +116,7 @@ for ( i in 1:length(cellname)){
     sweep.data<-as.data.frame(data,sweep=ii)
     sweep.max<-sweep.data[c(500:5000),c(1,3)]
     curr[ii]<-max(sweep.max)
-    cond[ii]<-max(sweep.max/(volt[i]+95))
+    cond[ii]<-max(sweep.max/(volt[ii]+95))
     sweep.tail<-sweep.data[c(20000:21000),c(1,3)]
     tail_curr[ii]<-min(sweep.tail)
   }
@@ -125,19 +125,25 @@ for ( i in 1:length(cellname)){
   
   
   sweep<-data.frame("voltage"=volt, 
-                    "conductance"= cond_norm)
-  SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
+                    "conductance"= cond_norm,
+                    "tail_conductance"=tail_norm)
+  SS<-getInitial(tail_conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
   
   activation <- function(g, Vhalf, k,c,V) (g/(1+exp((Vhalf-V)/k))+c)
-  model <- nls(conductance ~ activation(myg,myVhalf,myk,myc,voltage), data=sweep, start=list(myg=SS["alpha"],myVhalf=SS["xmid"],myk=SS["scale"],myc=0),control = nls.control(maxiter = 400))
+  model <- nls(tail_conductance ~ activation(myg,myVhalf,myk,myc,voltage),
+               data=sweep, 
+               start=list(myg=SS["alpha"],myVhalf=SS["xmid"],myk=SS["scale"],myc=0),
+               #start=list(myg=1,myVhalf=0,myk=10,myc=0),
+               control = nls.control(maxiter = 400))
   
   curve_df <- data.frame("voltage" = seq(min(sweep$voltage), max(sweep$voltage), length.out = 100),
-                         "conductance" = seq(min(sweep$conductance), max(sweep$conductance), length.out = 100))
+                         "tail_conductance" = seq(min(tail_norm), max(tail_norm), length.out = 100))
   curve_df$prob <- predict(model, curve_df, type = "response")
   print(
     ggplot(curve_df, aes(x = voltage, y = prob)) +
       geom_line() +
-      geom_point(data=sweep,aes(x=voltage,y=conductance))+
+      geom_point(data=sweep,aes(x=voltage,y=tail_conductance))+
+      geom_point(data=sweep,aes(x=voltage,y=conductance),col="red")+
       theme_classic())
   
   cell_values_i[s,3]<-coef(model)[2]

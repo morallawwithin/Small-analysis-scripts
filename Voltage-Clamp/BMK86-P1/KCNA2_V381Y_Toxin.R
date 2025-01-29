@@ -3,7 +3,7 @@ library(tidyverse)
 library(writexl)
 library(ggprism)
 library(RColorBrewer)
-
+library(lsmeans)
 cell1<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0003.abf","base",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0004.abf","extra.0",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0005.abf","extra.3",
@@ -184,6 +184,17 @@ ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,
   theme_prism(base_size = 14)
 
 ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.png", width = 5, height = 3)
+
+summary <- cell_values %>%
+  group_by( Condition, Time) %>% 
+  summarise(meanAmp = mean(norm.Amp),
+            sdAmp = sd(norm.Amp),
+            nAMp = n()) %>%
+  mutate(SEMAmp = sdAmp/sqrt(nAMp))
+
+V381Y_tox<-lm(norm.Amp~Condition*Time, data = cell_values)
+anova(V381Y_tox)
+lsmeans(V381Y_tox, pairwise ~ Condition | Time, adjust = "tukey")
 
 #summary(model)
 #sweep$PredictionsNLS <- predict(model)

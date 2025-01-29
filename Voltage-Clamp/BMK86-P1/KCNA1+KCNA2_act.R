@@ -22,22 +22,22 @@ cell01<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_7/",
                     condition ), ncol = 2)
 cell02<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(04[5-9]|5[0-5])"),
+                                      pattern="_00(4[5-9]|5[0-5])"),
                            sep=""),
                      condition ), ncol = 2)
 cell03<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(05[8-9]|6[0-8])"),
+                                      pattern="_00(5[8-9]|6[0-8])"),
                            sep=""),
                      condition ), ncol = 2)
 cell04<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(07[0-9]|80)"),
+                                      pattern="_00(7[0-9]|80)"),
                            sep=""),
                      condition ), ncol = 2)
 cell05<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(08[2-9]|9[0-2])"),
+                                      pattern="_00(8[2-9]|9[0-2])"),
                            sep=""),
                      condition ), ncol = 2)
 cell06<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
@@ -47,7 +47,7 @@ cell06<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                      condition ), ncol = 2)
 cell07<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12",
-                                      pattern="_00(03[6-9]|4[0-6])"),
+                                      pattern="_00(3[6-9]|4[0-6])"),
                            sep=""),
                      condition ), ncol = 2)
 
@@ -72,7 +72,7 @@ for ( i in 1:length(cellname)){
     sweep.data<-as.data.frame(data,sweep=ii)
     sweep.max<-sweep.data[c(500:5000),c(1,3)]
     curr[ii]<-max(sweep.max)
-    cond[ii]<-max(sweep.max/(volt[i]+95))
+    cond[ii]<-max(sweep.max/(volt[ii]+95))
     sweep.tail<-sweep.data[c(20000:21000),c(1,3)]
     tail_curr[ii]<-min(sweep.tail)
   }

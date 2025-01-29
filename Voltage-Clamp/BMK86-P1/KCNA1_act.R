@@ -91,7 +91,7 @@ for ( i in 1:length(cellname)){
     sweep.data<-as.data.frame(data,sweep=ii)
     sweep.max<-sweep.data[c(500:5000),c(1,3)]
     curr[ii]<-max(sweep.max)
-    cond[ii]<-max(sweep.max/(volt[i]+95))
+    cond[ii]<-max(sweep.max/(volt[ii]+95))
     sweep.tail<-sweep.data[c(20000:21000),c(1,3)]
     tail_curr[ii]<-min(sweep.tail)
   }

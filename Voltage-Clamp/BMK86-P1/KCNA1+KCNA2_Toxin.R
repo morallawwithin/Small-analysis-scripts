@@ -19,7 +19,7 @@ condition<-c(
 
 cell01<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_7/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_7",
-                               pattern="_0(009[1-9]|101)"),
+                               pattern="_0(09[1-9]|10[0-1])"),
                            sep=""),
                     condition ), ncol = 2)
 cell02<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
@@ -44,7 +44,7 @@ cell05<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                      condition ), ncol = 2)
 cell06<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12",
-                                      pattern="_00(00[1-9]|1[0-1])"),
+                                      pattern="_00(0[1-9]|1[0-1])"),
                            sep=""),
                      condition ), ncol = 2)
 cell07<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_12/",
@@ -113,31 +113,36 @@ for ( i in cellname){
 }
 
 cell_values [c('Condition', 'Time')]<- str_split_fixed(cell_values$V2,"\\.",2)
-cell_values$Time<-factor(cell_values$Time, levels = c("0","3","6","9","12"))
 cell_values<-cell_values[!cell_values$Condition=="base",]
 colnames(cell_values)<-c("cell"  ,      "ident"   ,     "raw.Amp"   ,     "norm.Amp"   ,     "Condition", "Time")
 cell_values$norm.Amp<-as.numeric(cell_values$norm.Amp)
+cell_values$Time<-as.numeric(cell_values$Time)
 
 #write_xlsx(cell_values,"D:/Peter/Analysis/KCNA2/BMK86-P1/V381Y.xlsx")
 
 
 ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,shape = Condition))+
+  coord_cartesian(clip = 'off',ylim=c(0,1.5), xlim = c(0,12))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_x_continuous(expand = c(0, 0))+
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
                fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
-               geom = 'errorbar',  width = 0.25,  position = position_dodge(width = 0.2),col="black") +
+               geom = 'errorbar',  width = 0.25,  col="black") +
   stat_summary(fun = mean, fun.min = mean, fun.max = mean,
-               geom = 'path',  size=1, position = position_dodge(width = 0.2), aes(col=Condition)) +
+               geom = 'path',  size=1,  aes(col=Condition)) +
   stat_summary(fun = mean, fun.min = mean, fun.max = mean,
-               geom = 'point',  size=4, position = position_dodge(width = 0.2)) +
-  scale_colour_manual(values = c("black", "red")) +
-  scale_fill_manual(values = c("black", "red")) +
+               geom = 'point',  size=4, aes(col=Condition)) +
+  scale_colour_manual(values = c("#3c5396", "#b5595f")) +
+  scale_fill_manual(values = c("#bac5e3", "#e6a2a4")) +
   scale_shape_manual (values =c(21,22))+
-  ylim(c(0,1.5))+
-  theme_prism(base_size = 14)
+  ylab(expression('norm. K'[V]*'1 current'))+
+  theme_prism(base_size = 12)
 
-ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2+KCNA1.png", width = 5, height = 3)
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2+KCNA1.svg", width = 3.5, height = 2)
 
+cell_values$Time<-as.character(cell_values$Time)
+cell_values$Time<-factor(cell_values$Time, levels = c("0","3","6","9","12"))
 kcna12_tox<-lm(norm.Amp~Condition*Time, data = cell_values)
 anova(kcna12_tox)
 lsmeans(kcna12_tox, pairwise ~ Condition | Time, adjust = "tukey")
@@ -155,7 +160,27 @@ summary <- cell_values %>%
 #geom_point()+
 #geom_line(aes(x=voltage,y=PredictionsNLS))+
 #theme_classic()
+##################
+#Plot examples
+###################
 
+data1<-readABF(cell02[1,1])
+data1<-as.data.frame(data1,sweep=12)
+data2<-readABF(cell02[6,1])
+data2<-as.data.frame(data2,sweep=12)
+data3<-readABF(cell02[11,1])
+data3<-as.data.frame(data3,sweep=12)
+ggplot(data1,aes(`Time [s]`,`IN 0C [pA]`))+
+  geom_line(color="#252525",size=2)+
+  geom_line(data=data2,color="#3c5396",size=2)+
+  geom_line(data=data3,color="#b5595f",size=2)+
+  ylim(c(-3500,6000))+
+  theme_prism(base_size = 14)+
+  theme(axis.title.x=element_blank(),        axis.text.x=element_blank(),
+        axis.line=element_blank(),
+        axis.title.y=element_blank(),        axis.text.y=element_blank(),
+        legend.position = "none")
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA12_example.svg", width = 2, height = 2)
 ################################################################################################
 ##I/V curve over time 
 ################################################################################################
