@@ -27,6 +27,8 @@ cells<-list(cell1,cell2,cell4,cell5,cell6,cell7,cell9,
             cell10,cell11,cell13,cell14,cell15,cell17)
 cellname<-c("cell1","cell2","cell4","cell5","cell6","cell7","cell9",
             "cell10","cell11","cell13","cell14","cell15","cell17")
+Ek<-(-75)
+
 for ( i in 1:length(cellname)){
   curr_cell<-cells[[i]]
   cell_values_i<-cbind(cellname[i],0,0)
@@ -35,23 +37,34 @@ for ( i in 1:length(cellname)){
     cond<-rep(0, sweepnr)
     tail_curr<-rep(0, sweepnr)
     curr<-rep(0, sweepnr)
+    GHK<-rep(0, sweepnr)
     if(sweepnr==16){
-      volt<-10*(-8:7)
+      volt<-10*(-8:7)+10^-20
       for (ii in 1:sweepnr){
       sweep.data<-as.data.frame(data,sweep=ii)
       sweep.max<-sweep.data[c(410:5000),c(1,4)]
       curr[ii]<-max(sweep.max)
-      cond[ii]<-max(sweep.max/(volt[ii]+95))
+      cond[ii]<-max(sweep.max/(volt[ii]-Ek))
+      GHK[ii]<-max(sweep.max/
+                     (volt[ii]/25*
+                        (exp((volt[ii]-Ek)/25)-1)/
+                        (exp((volt[ii])/25)-1)
+                      ))
       sweep.tail<-sweep.data[c(20410:20500),c(1,4)]
       tail_curr[ii]<-min(sweep.tail)
     } 
     }else if(sweepnr==11){
-      volt<-10*(-6:4)
+      volt<-10*(-6:4)+10^-20
       for (ii in 1:sweepnr){
         sweep.data<-as.data.frame(data,sweep=ii)
         sweep.max<-sweep.data[c(500:5000),c(1,4)]
         curr[ii]<-max(sweep.max)
-        cond[ii]<-max(sweep.max/(volt[ii]+95))
+        cond[ii]<-max(sweep.max/(volt[ii]-Ek))
+        GHK[ii]<-max(sweep.max/
+                       (volt[ii]/25*
+                          (exp((volt[ii]-Ek)/25)-1)/
+                          (exp(volt[ii]/25)-1)
+                       ))
         sweep.tail<-sweep.data[c(45780:46000),c(1,4)]
         tail_curr[ii]<-min(sweep.tail)
       }
@@ -61,11 +74,13 @@ for ( i in 1:length(cellname)){
     
     cond_norm<-cond/max(cond)
     tail_norm<-tail_curr/min(tail_curr)
+    GHK_norm<-GHK/max(GHK)
     
     
     sweep<-data.frame("voltage"=volt, 
                       "conductance"= cond_norm,
-                      "tail_conductance"=tail_norm)
+                      "tail_conductance"=tail_norm,
+                      "GHK"=GHK_norm)
     if(i==2){
       sweep$tail_conductance[12:16]<-NA
     }else if(i==12){
@@ -88,6 +103,7 @@ for ( i in 1:length(cellname)){
         geom_line() +
         geom_point(data=sweep,aes(x=voltage,y=tail_conductance))+
         geom_point(data=sweep,aes(x=voltage,y=conductance),col="red")+
+        geom_point(data=sweep,aes(x=voltage,y=GHK),col="blue")+
       theme_classic())
   cell_values_act<-rbind(cell_values_act,
                          cbind(rep(cellname[i],sweepnr),
