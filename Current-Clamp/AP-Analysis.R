@@ -18,10 +18,10 @@ data.list<-data.list[data.list$protocol=="AP",]
 ##########
 #Select ages, if you want
 ##########
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
-#cellname<-data.list$cell[data.list$age<17,]
-setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
-data.list<-data.list[data.list$age>16,]
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+data.list<-data.list[data.list$age<17,]
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#data.list<-data.list[data.list$age>16,]
 ####################
 ##select the cells
 ####################
@@ -45,7 +45,14 @@ if(file.exists(paste0(dataset,"_sweep.rds"))){
   sweep<-readRDS(paste0(dataset,"_sweep.rds"))
   AP_properties<-readRDS(paste0(dataset,"_AP_properties.rds"))
   AP_IFF<-readRDS(paste0(dataset,"_AP_IFF.rds"))
-}else if (!length(cellname)==length(unique(AP_IFF$cell))){
+}
+if (!length(cellname)==length(unique(AP_IFF$cell))){
+  sweep<-data.frame(matrix(ncol = 4, nrow = 0))
+  colnames(sweep)<-c("cell","genotype","current","AP")
+  AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
+  colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
+  AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
+  colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 for ( i in 1:length(cellname)){
 #select the cell
   curr_cell<-cells[i,]

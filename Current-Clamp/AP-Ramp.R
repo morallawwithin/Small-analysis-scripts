@@ -11,7 +11,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"CA1_PN"#"Cortex_L2&3_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
@@ -67,6 +67,10 @@ for ( i in 1:length(cellname)){
   amplitude<-max(AP_data_cell$volt)-AP_data_cell$volt[AP_ind_thres]
   max_ind<-head(which(AP_data_cell$volt==max(AP_data_cell$volt)),1)
   FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[fAHP_ind]))
+  FWHA_diff<-diff(FWHA_ind)
+  if(any(FWHA_diff>1)){
+    FWHA_ind<-FWHA_ind[1:(which(FWHA_diff>1)-1)]
+  }
   AP_properties_cell<-data.frame(
     "cell"=cellname[i],
     "genotype"=curr_cell$genotype,
@@ -81,6 +85,12 @@ for ( i in 1:length(cellname)){
   )
   AP_properties<-rbind(AP_properties,AP_properties_cell)
   }
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+AP_data_all<-AP_data
+AP_data<-AP_data_all[AP_data_all$age<17,]
+AP_properties_all<-AP_properties
+AP_properties<-AP_properties_all[AP_properties_all$age<17,]
+
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
 #AP_data_all<-AP_data
 #AP_data<-AP_data_all[AP_data_all$age>16,]
@@ -239,7 +249,7 @@ wilcox.test(FWHA~genotype,AP_properties)
          file="FWHA.png")
   ggsave(p4,width = 3, height = 4,
          file="FWHA.svg")
-p41<-ggplot(AP_properties,aes(age,FWHA*1000, col=as.factor(genotype),fill=as.factor(genotype)))+
+p41<-ggplot(AP_properties_all,aes(age,FWHA*1000, col=as.factor(genotype),fill=as.factor(genotype)))+
     geom_point(shape=16, size=4)+
     geom_smooth(method='lm', formula= y~x)+
     scale_colour_manual(values = c("black", "blue")) +
@@ -250,9 +260,9 @@ p41<-ggplot(AP_properties,aes(age,FWHA*1000, col=as.factor(genotype),fill=as.fac
     theme(legend.position = "none") 
 p41
 fwha.mdl<-lm(FWHA~age*genotype,data=AP_properties)
-summary(fwha.mdl)
+anova(fwha.mdl)
 ggsave(p41,width = 4, height = 4,
-       file="fwha_vs_age.png")
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/fwha_vs_age.png")
 p5<-  ggplot(AP_properties,aes(genotype,abs(fAHP),fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -268,7 +278,7 @@ wilcox.test(fAHP~genotype,AP_properties)
          file="fAHP.png")
   ggsave(p5,width = 3, height = 4,
          file="fAHP.svg")
-p55<-ggplot(AP_properties,aes(age,abs(fAHP), col=as.factor(genotype),fill=as.factor(genotype)))+
+p55<-ggplot(AP_properties_all,aes(age,abs(fAHP), col=as.factor(genotype),fill=as.factor(genotype)))+
   geom_point(shape=16, size=4)+
   geom_smooth(method='lm', formula= y~x)+
   scale_colour_manual(values = c("black", "blue")) +
@@ -280,9 +290,9 @@ p55<-ggplot(AP_properties,aes(age,abs(fAHP), col=as.factor(genotype),fill=as.fac
   theme(legend.position = "none")  
 p55      
 ggsave(p55,width = 4, height = 4,
-       file="ahp_vs_age.png")
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/ahp_vs_age.png")
 ahp.mdl<-lm(fAHP~age*genotype,data=AP_properties)
-summary(ahp.mdl)
+anova(ahp.mdl)
 p6<-  ggplot(AP_properties,aes(genotype,risingetime,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+

@@ -78,7 +78,7 @@ cellname<-c(paste("cell0",c(1:9),sep=""),paste("cell",c(10:11),sep=""))
 cells<-list(cell01, cell02, cell03, cell04, cell05, cell06, cell07, cell08, cell09, cell10, cell11)
 for ( i in 1:length(cellname)){
   curr_cell<-cells[[i]]
-  cell_values_i<-cbind(cellname[i],0,0)
+  cell_values_i<-cbind(cellname[i],0,0,0,0,0)
   s<-1
   sweepnr<-16
   data<-readABF(curr_cell[1,s])
@@ -89,18 +89,23 @@ for ( i in 1:length(cellname)){
   
   for (ii in 1:sweepnr){
     sweep.data<-as.data.frame(data,sweep=ii)
-    sweep.max<-sweep.data[c(500:5000),c(1,3)]
+    sweep.max<-sweep.data[c(500:10000),c(1,2)]
     curr[ii]<-max(sweep.max)
-    cond[ii]<-max(sweep.max/(volt[ii]+95))
+    cond[ii]<-max(sweep.max/(volt[ii]+75))
     sweep.tail<-sweep.data[c(20000:21000),c(1,3)]
     tail_curr[ii]<-min(sweep.tail)
   }
+  volt<-10*(-7:7)
+  tail_curr<-tail_curr[2:sweepnr]
+  cond<-cond[2:sweepnr]
   cond_norm<-cond/max(cond)
   tail_norm<-tail_curr/min(tail_curr)
   
   
   sweep<-data.frame("voltage"=volt, 
-                    "conductance"= cond_norm)
+                    "conductance"= cond_norm,
+                    "tail_conductance"=tail_norm)
+  #sweep<-sweep[1:which(tail_norm==1),]
   SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep)
   
   activation <- function(g, Vhalf, k,c,V) (g/(1+exp((Vhalf-V)/k))+c)
@@ -115,14 +120,13 @@ for ( i in 1:length(cellname)){
       geom_point(data=sweep,aes(x=voltage,y=conductance))+
       theme_classic())
   
-  cell_values_i[s,3]<-coef(model)[2]
+  cell_values_i[s,3:6]<-coef(model)
   cell_values_i[s,2]<-curr[12]
   cell_values<-rbind(cell_values,cell_values_i)
   cell_values_act<-rbind(cell_values_act,
-                         cbind(rep(cellname[i],11),
-                               volt,
-                               cond_norm,
-                               tail_norm))
+                         cbind(rep(cellname[i],length(sweep$voltage)),
+                               sweep))
 }
-kcna1<-as.numeric(cell_values[,3])
+kcna1<-cell_values
 kcna1_act<-cell_values_act
+colnames(kcna1_act)<-c("cell","voltage","cond_norm.","tail_norm")
