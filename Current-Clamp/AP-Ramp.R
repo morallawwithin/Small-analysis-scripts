@@ -63,26 +63,54 @@ for ( i in 1:length(cellname)){
   AP_thres_diff<-c(2,diff(AP_thres_ind))
   #select the last index of the ones where thedifference to the previous index was >1
   AP_ind_thres<-AP_thres_ind[tail(which(AP_thres_diff>1),1)]
-  fAHP_ind<-head(which(AP_data_cell$volt[(samplerate*0.006):(range_after+(samplerate*0.006+1))]==min(AP_data_cell$volt[(samplerate*0.006):(range_after+(samplerate*0.006+1))])),1)+(samplerate*0.006-1)
+  
+  #reload the data now alinged at threshold - if zou comment it out, 
+  it aligns the X axis at 0mV
+  AP_ind_raw2<-AP_ind_raw-(600-AP_ind_thres)
+  AP_data_cell<- data.frame(
+    "volt" = 
+      c(data$data[[4]][(AP_ind_raw2-samplerate*0.006):(AP_ind_raw2+range_after),1]), 
+    #modified to compute from sweep 4
+    "curr" = 
+      command_curr[(AP_ind_raw2-samplerate*0.006):(AP_ind_raw2+range_after)],
+    "time" = 
+      (c(1:(sweep_length*samplerate))/samplerate)[(AP_ind_raw2-samplerate*0.006):(AP_ind_raw2+range_after)],
+    "ind" = c(1:((samplerate*0.006+1)+range_after)))
+  AP_data_cell$first_deriv<-predict(sm.spline(AP_data_cell$time, 
+                                              AP_data_cell$volt), AP_data_cell$time, 1)/1000
+  AP_data_cell$second_deriv<-predict(sm.spline(AP_data_cell$time, 
+                                               AP_data_cell$first_deriv), AP_data_cell$time, 1)/1000
+  AP_data_cell$cell<-rep(cellname[i],length(AP_data_cell$volt))
+  AP_data_cell$genotype<-rep(curr_cell$genotype,length(AP_data_cell$volt))
+  AP_data_cell$age<-rep(curr_cell$age,length(AP_data_cell$volt))
+  AP_data<-rbind(AP_data,AP_data_cell)
+  AP_ind_thres<-samplerate*0.006+1
+  
+  AP_ind_0<-head(which(AP_data_cell$volt>0),1)
+  
+  fAHP_ind<-head(which(AP_data_cell$volt[(AP_ind_0):(range_after+(samplerate*0.006+1))]==min(AP_data_cell$volt[(AP_ind_0):(range_after+(samplerate*0.006+1))])),1)+(AP_ind_0-1)
   amplitude<-max(AP_data_cell$volt)-AP_data_cell$volt[AP_ind_thres]
+  
+  repol_ind<-tail(which(AP_data_cell$volt>(amplitude*0.2+AP_data_cell$volt[fAHP_ind])),1)
   max_ind<-head(which(AP_data_cell$volt==max(AP_data_cell$volt)),1)
   FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[fAHP_ind]))
-  FWHA_diff<-diff(FWHA_ind)
-  if(any(FWHA_diff>1)){
-    FWHA_ind<-FWHA_ind[1:(which(FWHA_diff>1)-1)]
-  }
   AP_properties_cell<-data.frame(
     "cell"=cellname[i],
     "genotype"=curr_cell$genotype,
     "rheobase"=AP_data_cell$curr[AP_ind_thres],
     "threshold"=AP_data_cell$volt[AP_ind_thres],
+    
     "FWHA"=AP_data_cell$time[tail(FWHA_ind,1)]-AP_data_cell$time[head(FWHA_ind,1)],
+    
     "fAHP"=AP_data_cell$volt[fAHP_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
-    "risingetime"=AP_data_cell$time[max_ind]-AP_data_cell$time[AP_ind_thres],
-    "repolarizingtime"=AP_data_cell$time[fAHP_ind]-AP_data_cell$time[max_ind],
+    "risingtime"=AP_data_cell$time[max_ind]-AP_data_cell$time[AP_ind_thres],
+    
+    "repolarizingtime"=AP_data_cell$time[repol_ind]-AP_data_cell$time[max_ind], 
+    #this goes to its minimum
     "amplitude"=amplitude,
     "age"=curr_cell$age
   )
+
   AP_properties<-rbind(AP_properties,AP_properties_cell)
   }
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
