@@ -45,7 +45,7 @@ p1<-ggplot(data,aes(x=abs(amplitude),color=Genotype))+
   xlab("absolute amplitude [pA]")+
   theme_prism(base_size = 14)+
   theme(legend.position = "none")  
-
+p1
 ggsave(p1,width = 5, height = 4,
        file="EPSC_amp_cum.png")
 
@@ -94,11 +94,13 @@ p2<-ggplot(data,aes(x=IF,color=Genotype))+
   scale_y_continuous(expand = c(0, 0),limits = c(0,1))+
   ylab("cumulative fraction")+
   xlab("instantaneous frequency")+
-  theme_prism(base_size = 14)+
+  theme_prism(base_size = 14,base_family = "Calibri")+
   theme(legend.position = "none")  
-
+p2
 ggsave(p2,width = 5, height = 4,
        file="EPSC_freq_cum.png")
+ggsave(p2,width = 4, height = 4,
+       file="EPSC_freq_cum.svg")
 
 ggplot(data,aes(FileName,IF,fill=Genotype, col=Genotype))+
   geom_violin(trim=FALSE)+
@@ -134,5 +136,8 @@ p5<-ggplot(data_summary,aes(Genotype,freq,fill=Genotype, col=Genotype))+
   theme(legend.position = "none")  
 ggsave(p5,width = 3, height = 4,
        file="EPSC_freq_one_value_boxplot.png")
-freq2<-lmer(IF~Genotype+(1|animal),data=data)
+freq2<-lmer(IF~Genotype+(1|FileName),data=data)
 summary(freq2)
+freq3<-lm(IF~Genotype,data=data)
+summary(freq3)
+anova(freq3)

@@ -3,9 +3,10 @@ library(readr)
 library (plyr)
 library(visreg)
 library(egg)
+library(ggprism)
 
 
-setwd("D:/Peter/Analysis/KCNA2/P405L_Mice") #adjust working directory
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/Phenomaster") #adjust working directory
 data1 <- read.csv("Phenomaster_20220401.csv", header=TRUE)#adjust file
 data1$Box <- paste0(as.character(data1$Box), "_220401")#adjust date
 data2 <- read.csv("Phenomaster_20220404.csv", header=TRUE)
@@ -29,6 +30,9 @@ data<-data[!(data$Box %in% c("5_220408","2_220516")),]
 Group1 <- c("3_220401","4_220401","5_220401","7_220401","2_220404","3_220404","6_220404","1_220408","4_220408","2_220513","3_220513","6_220513","7_220513","3_220516","5_220516","6_220516")#adjust your groups
 group_bin<-as.integer(data$Box %in% Group1)+1
 data$group<-as.factor(group_bin)
+levels(data$group)[levels(data$group)=="1"] <- "Kcna2+/P405L"
+levels(data$group)[levels(data$group)=="2"] <- "Kcna2+/+"
+
 
 #set Up the data container (bin)
 n_min = 1
@@ -41,7 +45,7 @@ diff_activity = diff_activity_bin,
 time =as.POSIXlt(time_bin, tz="", tryFormats = "%H:%M:%OS" ),
 time_disp=time_bin,
 name =name_bin,
-group = as.factor(group_bin)
+group = data$group
 )
 
 #generate timestamps every interval min
@@ -89,20 +93,23 @@ summary(act.mdl)
 vis<-visreg(act.mdl,"time_mdl",by="group",overlay=TRUE,ylim=c(0,400))
 ##Plot
 a<-ggplot(filter(vis$fit, group == 1), aes(time_mdl, visregFit))+
-  geom_boxplot(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill="deepskyblue",outlier.shape = NA)+
-  geom_boxplot(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="sienna1",outlier.shape = NA)+
-  #geom_point(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='blue')+
-  #geom_point(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)), size=0.5, alpha=.3, position=position_jitter(0.4), colour='red')+
+  geom_boxplot(data=filter(vis$res, group == 2), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=0.1),fill="white",outlier.shape = NA)+
+  geom_boxplot(data=filter(vis$res, group == 1), aes(time_mdl, visregRes,group=as.factor(time_mdl)),position = position_nudge(x=-0.1),fill=rgb(191/255,191/255,1,1),outlier.shape = NA,colour="blue")+
+  geom_line(data=filter(vis$fit, group == 2),colour='black', size=1)+
+  geom_ribbon(data=filter(vis$fit, group == 2),aes(ymin=visregLwr, ymax=visregUpr), fill='lightgrey',alpha=.5)+
   geom_line(colour='blue', size=1)+
-  geom_ribbon(aes(ymin=visregLwr, ymax=visregUpr), fill='blue',alpha=.3)+
-  geom_line(data=filter(vis$fit, group == 2),colour='red', size=1)+
-  geom_ribbon(data=filter(vis$fit, group == 2),aes(ymin=visregLwr, ymax=visregUpr), fill='red',alpha=.3)+
+  geom_ribbon(aes(ymin=visregLwr, ymax=visregUpr), fill=rgb(191/255,191/255,1,1),alpha=.5)+
   labs(y = "Median Distance per h [cm]")+
   labs(x="Time of Day")+
   scale_x_continuous(breaks=c(4,8,12,16,20,24), labels=c("4:00","8:00","12:00","16:00","20:00","24:00"),limits=c(0.5,24.5))+
-  ylim(-10,200)
-  
-
+  ylim(-10,200)+
+  theme_prism() 
+#scale_colour_manual(values = c("blue","black" )) +
+#  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"lightgrey"))
+a
+ggsave(a,filename="D:/Peter/Analysis/KCNA2/P405L_Mice/Phenomaster/median_activity.svg",
+       height=4,
+       width=8)
 #Food and Drink
 
 data.drink<-lapply(as.list(unique(data$Box)), function(x){

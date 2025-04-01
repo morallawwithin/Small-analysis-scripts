@@ -13,19 +13,19 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP_Input",]
-cells<-data[,c(2,3)]
+cells<-data[,c(2,3,5)]
 cellname<-data$cell
 ##########
 #prepare everything for the loop
 ##########
-sag_data<-data.frame(matrix(ncol = 9, nrow = 0))
-colnames(sag_data)<-c("cell","genotype","current","sag","peak_sag","steady_state")
-pass_properties<-data.frame(matrix(ncol = 9, nrow = 0))
-colnames(pass_properties)<-c("cell","genotype","resting_memb_pot","input_resis")
+sag_data<-data.frame(matrix(ncol = 10, nrow = 0))
+colnames(sag_data)<-c("cell","genotype","current","sag","peak_sag","steady_state","age")
+pass_properties<-data.frame(matrix(ncol = 10, nrow = 0))
+colnames(pass_properties)<-c("cell","genotype","resting_memb_pot","input_resis","age")
 #Samplerate
 samplerate<-100000 #/s
 
@@ -62,13 +62,20 @@ for ( i in 1:length(cellname)){
                           "current"=curr, 
                           "sag"= sag,
                           "peak_sag"=peak_sag,
-                          "steady_state"=steady_state))
+                          "steady_state"=steady_state,
+                          "age"=curr_cell$age))
   pass_properties<-rbind(pass_properties,
                   data.frame("cell"=cellname[i],
                              "genotype"=curr_cell$genotype,
                              "resting_memb_pot"=mean(resting_memb_pot), 
-                             "input_resis"= mean(input_resis)))
+                             "input_resis"= mean(input_resis),
+                             "age"=curr_cell$age))
 }
+pass_properties_all<-pass_properties
+sag_data_all<-sag_data
+#pass_properties_all<-rbind(pass_properties,pass_properties_all)
+#sag_data_all<-rbind(sag_data_all,sag_data)
+
 p1<-ggplot(pass_properties,aes(genotype,resting_memb_pot, fill=genotype,col=genotype))+
   geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -84,6 +91,18 @@ ggsave(p1,width = 3, height = 4,
        file="resting_memb.png")
 ggsave(p1,width = 3, height = 4,
        file="resting_memb.svg")
+
+p15<-ggplot(pass_properties_all,aes(age,resting_memb_pot, col=as.factor(genotype),fill=as.factor(genotype)))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = c("black", "blue")) +
+  scale_fill_manual(values = c("lightgrey",rgb(191/255,191/255,1,1))) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  #xlim(c(12,20))+  
+  xlab("age [d]") + ylab("resting membrane potential [mV]")+
+  theme(legend.position = "none")   
+p15 
+
 p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype))+
   geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -99,6 +118,17 @@ ggsave(p2,width = 3, height = 4,
        file="input_resis.png")
 ggsave(p2,width = 3, height = 4,
        file="input_resis.svg")
+p22<-ggplot(pass_properties_all,aes(age,input_resis, col=as.factor(genotype),fill=as.factor(genotype)))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = c("black", "blue")) +
+  scale_fill_manual(values = c("lightgrey",rgb(191/255,191/255,1,1))) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  #xlim(c(12,20))+  
+  xlab("age [d]") + ylab("input resistance [MOhm]")+
+  theme(legend.position = "none")   
+p22 
+
 p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 

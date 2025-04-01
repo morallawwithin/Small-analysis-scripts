@@ -10,29 +10,23 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the dataset
 ####################
-dataset<-"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
+dataset<-"CA1_IN"#"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
 data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data.list<-data.list[data.list$protocol=="AP",]
 
-##########
-#Select ages, if you want
-##########
-setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
-data.list<-data.list[data.list$age<17,]
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
-#data.list<-data.list[data.list$age>16,]
+
 ####################
 ##select the cells
 ####################
-cells<-data.list[,c(2,3)]
+cells<-data.list[,c(2,3,5)]
 cellname<-data.list$cell
 
 ##########
 #prepare everything for the loop
 ##########
-sweep<-data.frame(matrix(ncol = 4, nrow = 0))
-colnames(sweep)<-c("cell","genotype","current","AP")
+sweep<-data.frame(matrix(ncol = 5, nrow = 0))
+colnames(sweep)<-c("cell","genotype","current","AP","AUC")
 AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
@@ -46,9 +40,9 @@ if(file.exists(paste0(dataset,"_sweep.rds"))){
   AP_properties<-readRDS(paste0(dataset,"_AP_properties.rds"))
   AP_IFF<-readRDS(paste0(dataset,"_AP_IFF.rds"))
 }
-if (!length(cellname)==length(unique(AP_IFF$cell))){
-  sweep<-data.frame(matrix(ncol = 4, nrow = 0))
-  colnames(sweep)<-c("cell","genotype","current","AP")
+if (!length(cellname)==length(unique(sweep$cell))){
+  sweep<-data.frame(matrix(ncol = 5, nrow = 0))
+  colnames(sweep)<-c("cell","genotype","current","AP","AUC")
   AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
   colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
   AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
@@ -66,7 +60,10 @@ for ( i in 1:length(cellname)){
   AP_thres<-list()
   AP_isi<-list()
 #which voltage at which step  
-  curr<-25*(-4:(sweepnr-5))  
+  curr<-25*(-4:(sweepnr-5)) 
+  if (dataset=="CA1_IN"){
+  curr<-50*(-2:(sweepnr-3)) 
+  }
     #do the sweep analysis  
     for (ii in 1:sweepnr){
       #read the sweep data
@@ -126,8 +123,9 @@ for ( i in 1:length(cellname)){
     data.frame("cell"=rep(cellname[i],sweepnr),
                "genotype"=rep(curr_cell$genotype,sweepnr),
                "current"=curr[1:sweepnr], 
-                    "AP"= AP_nr))
-  
+               "AP"= AP_nr,
+               "AUC"=integrate(approxfun(curr[1:sweepnr],AP_nr),0,curr[sweepnr])[1]))
+  if(any(AP_nr>0)){
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_thres)<-curr
   AP_thres_names<-as.character( names(unlist(AP_thres)))
@@ -153,15 +151,25 @@ for ( i in 1:length(cellname)){
                          "current"=as.numeric( stringr::str_extract(AP_isi_names,"[123]?[2570][05]")),
                          "AP_Nr"=as.numeric(AP_isi_nr),
                          "IFF"=unlist(AP_isi)
-                       ))
+                       ))}
  print(paste0("finished analysis of ",curr_cell$file)) 
 }    
 sweep$genotype<-factor(sweep$genotype,levels = c("Kcna2+/P405L","Kcna2+/+"))
 sweep$age<-data.list$age[match(sweep$cell,data.list$cell)]
+sweep$sex<-data.list$sex[match(sweep$cell,data.list$cell)]
 saveRDS(sweep,paste0(dataset,"_sweep.rds"))
 saveRDS(AP_properties,paste0(dataset,"_AP_properties.rds"))
 saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
 }
+##########
+#Select ages/sex/etc, if you want
+##########
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+#sweep<-sweep[sweep$age<17,]
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#sweep<-sweep[sweep$age>16,]
+#sweep<-sweep[sweep$sex=="m",]
+
 
 p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
   stat_summary(fun = mean, 
@@ -173,13 +181,33 @@ p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype
   stat_summary(fun = mean,
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c( "blue","black")) +
-  theme_prism(base_size = 14)+
+  theme_prism(base_size = 14,base_family = "Calibri")+
   coord_cartesian(clip = 'off',ylim=c(0,45), xlim = c(0,310))+
   scale_y_continuous(expand = c(0, 0))+
   scale_x_continuous(expand = c(0, 0))+
   theme(legend.position = "none")+
   xlab("injected current [pA]") + ylab("number of APs")
 p1
+
+p1_IN<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
+  stat_summary(fun = mean, 
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar',  width = 30,size=1,  position = position_dodge(width = 0.5)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
+  stat_summary(fun = mean,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = c( "blue","black")) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  coord_cartesian(clip = 'off',ylim=c(0,250), xlim = c(0,1010))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_x_continuous(expand = c(0, 0))+
+  theme(legend.position = "none")+
+  xlab("injected current [pA]") + ylab("number of APs")
+p1_IN
+
+
 
 sweep$current<-as.factor(sweep$current)
 model_AP<-lm(AP~current*genotype,data= sweep)
@@ -191,6 +219,30 @@ ggsave(p1,width = 4, height = 4,
        file="APnumber.png")
 ggsave(p1,width = 4, height = 4,
        file="APnumber.svg")
+sweep2<-sweep[sweep$current==0,]
+p11<-ggplot(sweep2,aes(age,value, col=genotype,fill=genotype))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = c("blue","black" )) +
+  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"lightgrey")) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+ # scale_y_continuous(expand = c(0, 0),limits = c(0,20))+
+ # xlim(c(12,20))+  
+  xlab("age [d]") + ylab("AUC [AU]")+
+  theme(legend.position = "none")  
+p11  
+ggsave(p11,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/AUC_vs_age.png")
+ggsave(p11,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/AUC_vs_age.svg")
+auc.mdl<-lm(value~age*genotype,data=sweep2)
+anova(auc.mdl)
+
+
+
+
+
+
 p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
   geom_boxplot()+
   scale_colour_manual(values = c("black", "blue")) +
