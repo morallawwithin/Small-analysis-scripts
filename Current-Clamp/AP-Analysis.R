@@ -10,7 +10,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the dataset
 ####################
-dataset<-"CA1_IN"#"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
+dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_IN"#"CA1_IN"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
 data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data.list<-data.list[data.list$protocol=="AP",]
@@ -61,7 +61,7 @@ for ( i in 1:length(cellname)){
   AP_isi<-list()
 #which voltage at which step  
   curr<-25*(-4:(sweepnr-5)) 
-  if (dataset=="CA1_IN"){
+  if (dataset=="CA1_IN"|dataset=="Cortex_L2&3_IN"){
   curr<-50*(-2:(sweepnr-3)) 
   }
     #do the sweep analysis  
@@ -73,6 +73,9 @@ for ( i in 1:length(cellname)){
       #Find action potentials
       #first: find indices that are above 0 mV
       AP_ind_raw<-which(sweep.data[,2]>0)
+      if (dataset=="CA1_IN"|dataset=="Cortex_L2&3_IN"){
+        AP_ind_raw<-which(sweep.data[,2]>(-5))
+      }
       #if there are any continue analysis
       if(!is_empty(AP_ind_raw)){
         #calculate the difference between the indices >0 mV
@@ -200,7 +203,7 @@ p1_IN<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genot
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c( "blue","black")) +
   theme_prism(base_size = 14,base_family = "Calibri")+
-  coord_cartesian(clip = 'off',ylim=c(0,250), xlim = c(0,1010))+
+  coord_cartesian(clip = 'off',ylim=c(0,300), xlim = c(0,1010))+
   scale_y_continuous(expand = c(0, 0))+
   scale_x_continuous(expand = c(0, 0))+
   theme(legend.position = "none")+
@@ -218,6 +221,11 @@ lsmeans(model_AP, pairwise ~ genotype | current, adjust = "tukey")
 ggsave(p1,width = 4, height = 4,
        file="APnumber.png")
 ggsave(p1,width = 4, height = 4,
+       file="APnumber.svg")
+
+ggsave(p1_IN,width = 4, height = 4,
+       file="APnumber.png")
+ggsave(p1_IN,width = 4, height = 4,
        file="APnumber.svg")
 sweep2<-sweep[sweep$current==0,]
 p11<-ggplot(sweep2,aes(age,value, col=genotype,fill=genotype))+
