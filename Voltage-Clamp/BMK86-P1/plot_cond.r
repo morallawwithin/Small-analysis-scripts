@@ -71,7 +71,7 @@ model_V381Y<- nls(cond_norm ~ activation(myg,myVhalf,myk,myc,volt), data=filter(
 
 
 
-ggplot(data=df_act,aes(x=volt, y=cond_norm, group=group, fill=group,shape = group))+
+ggplot(data=df_act,aes(x=volt, y=tail_norm, group=group, fill=group,shape = group))+
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
                fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
@@ -90,4 +90,4 @@ ggplot(data=df_act,aes(x=volt, y=cond_norm, group=group, fill=group,shape = grou
   xlim(c(-70,60))+
   theme_prism(base_size = 12)+
   xlab("membrane potential [mV]") + ylab("norm. conductance")
-ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/activation_curve_all_tails.svg", width = 5, height = 3)
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/activation_curve_all_conductance.svg", width = 5, height = 3)

@@ -82,7 +82,7 @@ exclusion_logical<-!(seq(bin$name) %in% exclusion_indices) #if you only want the
 bin<-bin[exclusion_logical,]
 
 
-#median_activity
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^#median_activity
 
 
 ##Statistics

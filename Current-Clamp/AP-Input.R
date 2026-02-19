@@ -13,7 +13,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP_Input",]
@@ -73,8 +73,18 @@ for ( i in 1:length(cellname)){
 }
 pass_properties_all<-pass_properties
 sag_data_all<-sag_data
+
 #pass_properties_all<-rbind(pass_properties,pass_properties_all)
 #sag_data_all<-rbind(sag_data_all,sag_data)
+
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+#pass_properties<-pass_properties[pass_properties$age<17,]
+#sag_data<-sag_data[sag_data$age<17,]
+
+#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#pass_properties<-pass_properties[pass_properties$age>16,]
+#sag_data<-sag_data[sag_data$age>16,]
+
 
 p1<-ggplot(pass_properties,aes(genotype,resting_memb_pot, fill=genotype,col=genotype))+
   geom_boxplot()+
@@ -102,7 +112,10 @@ p15<-ggplot(pass_properties_all,aes(age,resting_memb_pot, col=as.factor(genotype
   xlab("age [d]") + ylab("resting membrane potential [mV]")+
   theme(legend.position = "none")   
 p15 
-
+ggsave(p15,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/resting_memb_pot_vs_age.png")
+ggsave(p15,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/threshold_vs_age.svg") 
 p2<-ggplot(pass_properties,aes(genotype,input_resis, fill=genotype,col=genotype))+
   geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -128,31 +141,36 @@ p22<-ggplot(pass_properties_all,aes(age,input_resis, col=as.factor(genotype),fil
   xlab("age [d]") + ylab("input resistance [MOhm]")+
   theme(legend.position = "none")   
 p22 
-
+ggsave(p22,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/input_resis_vs_age.png")
+ggsave(p22,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/input_resis_vs_age.svg") 
 p3<-ggplot(sag_data,aes(current,sag,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
   stat_summary(fun = mean, 
                fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
                fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
-               geom = 'errorbar',  width = 10,size=1,  position = position_dodge(width = 0.5)) +
+               geom = 'errorbar',  width = 10,size=1) +
   stat_summary(fun = mean, fun.min = mean, fun.max = mean,
-               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=as.factor(genotype))) +
+               geom = 'path',  size=1,  aes(col=as.factor(genotype))) +
   stat_summary(fun = mean,
-               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+               geom = 'point', size=5, shape=17) +
   scale_colour_manual(values = c("black", "blue")) +
-  #ylim(c(-0.5,6))+
+  xlim(c(-10,-110))+
+  #ylim(c(0,3))+
   theme_prism(base_size = 14)+
   xlab("injected current [pA]") + ylab("sag potential [mV]")
+p3
 ggsave(p3,width = 6, height = 4,
        file="sag-pot.png")
 
-p5<-ggplot(sag_data,aes(steady_state,peak_sag, col=as.factor(genotype),fill=as.factor(genotype)))+
+p5<-ggplot(sag_data,aes(steady_state,steady_state-peak_sag, col=as.factor(genotype),fill=as.factor(genotype)))+
   geom_point(shape=21, size=4)+
   geom_smooth(method='lm', formula= y~x)+
   scale_colour_manual(values = c("black", "blue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
   theme_prism(base_size = 14)+
-  ylim(c(-50,-120))+
-  xlim(c(-50,-120))+  
+ # ylim(c(-50,-120))+
+  xlim(c(-60,-120))+  
   xlab("steady state potential [mV]") + ylab("peak sag potential [mV]")+
   theme(legend.position = "none")
 p5
@@ -160,7 +178,7 @@ ggsave(p5,width = 6, height = 4,
        file="sag-pot_vs_memb.png")
 ggsave(p5,width = 6, height = 4,
        file="sag-pot_vs_memb.svg")
-sag.mdl<-lm(peak_sag~steady_state*genotype,data=sag_data)
+sag.mdl<-lm((peak_sag-steady_state)~steady_state*genotype,data=sag_data)
 summary(sag.mdl)
 
 data1<-readABF(cells$file[17])#17#1

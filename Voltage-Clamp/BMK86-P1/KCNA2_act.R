@@ -23,7 +23,7 @@ cell01<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA2 WT/2022_4_3/",
 
 cell02<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA2 WT/2022_4_3/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA2 WT/2022_4_3",
-                               pattern="_00(2[6-9]|3[0-6])"),
+                               pattern="_00(2[6-9]|3[0-6])"),#Example for fig 2
                            sep=""),
                     condition ), ncol = 2)
 

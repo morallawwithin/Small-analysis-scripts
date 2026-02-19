@@ -22,7 +22,7 @@ cell01<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_7/",
                     condition ), ncol = 2)
 cell02<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11",
-                                      pattern="_00(4[5-9]|5[0-5])"),
+                                      pattern="_00(4[5-9]|5[0-5])"),#example
                            sep=""),
                      condition ), ncol = 2)
 cell03<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1+KCNA2/2022_4_11/",
@@ -112,3 +112,4 @@ for ( i in 1:length(cellname)){
 kcna1_kcna2<-cell_values
 kcna1_kcna2_act<-cell_values_act
 colnames(kcna1_kcna2_act)<-c("cell","voltage","cond_norm.","tail_norm")
+

@@ -5,7 +5,7 @@ library(ggprism)
 #cell1<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-241226/24d27000.abf" # 15%leak
 cell2<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250106/25106002.abf"  
 #cell3<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250106/25106007.abf" 
-cell4<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250120/25120000.abf" 
+cell4<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250120/25120000.abf" #Example for Fig. 2
 cell5<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250120/25120005.abf" #?
 cell6<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250120/25120006.abf" 
 #cell7<-"D:/Peter/Data/KCNA2/BMK86/CHO_KCNA_V381/KCNA2-250120/25120007.abf" 
@@ -25,7 +25,7 @@ colnames(cell_values)<-c("cell","amplitude","v1/2")
 cell_values_act<-data.frame(matrix(ncol = 4, nrow = 0))
 colnames(cell_values_act)<-c("cell","voltage","cond. norm.","tail. curr.")
 cells<-list(cell2,cell4,cell5,cell6,cell9,
-            cell10,cell11,cell13,cell14,cell15,cell17)
+            cell10,cell11,cell13,cell14,cell15)
 cellname<-c("cell2","cell4","cell5","cell6","cell9",
             "cell10","cell11","cell13","cell14","cell15")
 Ek<-(-75)

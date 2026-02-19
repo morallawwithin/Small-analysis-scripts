@@ -4,6 +4,7 @@ library(writexl)
 library(ggprism)
 library(RColorBrewer)
 library(lsmeans)
+library(minpack.lm)
 cell1<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0003.abf","base",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0004.abf","extra.0",
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_01_19_0005.abf","extra.3",
@@ -105,10 +106,10 @@ cell8<-matrix(c("D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_06_20_0
                 "D:/Peter/Data/KCNA2/BMK86/CHO_KCNA2_V381Y_BMK86-P1/2023_06_20_0022.abf","toxin.12"),
               nrow=2)
 #curr_cell<-cell5
-cell_values<-data.frame(matrix(ncol = 4, nrow = 0))
-colnames(cell_values)<-c("cell","condition","amplitude","v1/2")
-cell_values_act<-data.frame(matrix(ncol = 5, nrow = 0))
-colnames(cell_values_act)<-c("cell","condition","voltage","cond. norm.","tail. curr.")
+cell_values<-data.frame(matrix(ncol = 5, nrow = 0))
+colnames(cell_values)<-c("cell","condition","amplitude","v1/2","tau")
+cell_values_act<-data.frame(matrix(ncol = 6, nrow = 0))
+colnames(cell_values_act)<-c("cell","condition","voltage","cond. norm.","tail. curr.","tau")
 cells<-list(cell1,cell2,cell3,cell4,cell5,cell6,cell7,cell8)
 cellname<-c("cell1","cell2","cell3","cell4","cell5","cell6","cell7","cell8")
 for ( i in 1:length(cellname)){
@@ -116,23 +117,47 @@ for ( i in 1:length(cellname)){
   cell_values_i<-cbind(rep(cellname[i],ncol(curr_cell)),
                        curr_cell[2,],
                        rep(0, ncol(curr_cell)),
+                       rep(0, ncol(curr_cell)),
                        rep(0, ncol(curr_cell)))
 
   for (s in 1:ncol(curr_cell)){
 
+    sweepnr<-11
     data<-readABF(curr_cell[1,s])
     cond<-rep(0, 11)
     tail_curr<-rep(0, 11)
     curr<-rep(0, 11)
     volt<-(-6:4)*10
+    tau <-rep(0, sweepnr)
 
     for (t in 1:11){
       sweep.data<-as.data.frame(data,sweep=t)
       sweep.max<-sweep.data[c(800:20000),c(1,2)]#change channel here
       curr[t]<-max(sweep.max)
       cond[t]<-max(sweep.max/(volt[t]+95))
-      sweep.tail<-sweep.data[c(45000:46000),c(1,4)]
+      sweep.tail<-sweep.data[c(45000:46000),c(1,2)]
      tail_curr[t]<-min(sweep.tail)
+     
+     # --- Tau of Inactivation ---
+     # Fit decay after peak
+     peak_idx <- which(sweep.data[,2]==max(sweep.data[c(800:15000),2]))[1]
+     decay_data <- sweep.data[peak_idx:45000,c(1,2)]
+     #decay_data[,2]<-decay_data[,2]-min(decay_data[,2])
+     colnames(decay_data)<-c("time","current")
+     try({
+       fit <- nlsLM(current ~ A * exp(time / tau) + C,
+                    start = list(A = decay_data$current[1], tau = -4, C = min(decay_data$current)),
+                    control = nls.lm.control(maxiter = 500), data=decay_data)
+       tau[t] <- coef(fit)["tau"]
+       decay_data$fit<-predict(fit)
+       if(ii==11){
+         print(
+           ggplot(decay_data, aes(x = time)) +
+             geom_line(aes(y = current), color = "blue", size = 1, alpha = 0.6) +
+             geom_line(aes(y = fit), color = "red", size = 1) +
+             theme_minimal()
+         )}
+     }, silent = TRUE)
       }
   cond_norm<-cond/max(cond)
   tail_norm<-tail_curr/min(tail_curr)
@@ -141,9 +166,11 @@ for ( i in 1:length(cellname)){
                                curr_cell[2,s],
                                volt,
                                cond_norm,
-                               tail_norm)) 
+                               tail_norm,
+                               tau)) 
   #cell_values[s,4]<-coef(model)[2]
   cell_values_i[s,3]<-curr[10]
+  cell_values_i[s,5]<-tau[10] #40 mV
   }
   
 cell_values<-rbind(cell_values,cell_values_i)
@@ -151,7 +178,7 @@ cell_values<-rbind(cell_values,cell_values_i)
 
 
 cell_values[,3]<-as.numeric(cell_values[,3])
-
+cell_values[,5]<-as.numeric(cell_values[,5])
 for ( i in cellname){
 
   cell_values[(cell_values[,1]==i)&(str_detect(cell_values[,2],"ext")),4]<-cell_values[(cell_values[,1]==i)&(str_detect(cell_values[,2],"ext")),3]/cell_values[(cell_values[,1]==i)&(str_detect(cell_values[,2],"bas")),3]
@@ -164,9 +191,11 @@ for ( i in cellname){
 
 cell_values [c('Condition', 'Time')]<- str_split_fixed(cell_values$V2,"\\.",2)
 cell_values<-cell_values[!cell_values$Condition=="base",]
-colnames(cell_values)<-c("cell"  ,      "ident"   ,     "raw.Amp"   ,     "norm.Amp"   ,     "Condition", "Time")
+colnames(cell_values)<-c("cell"  ,      "ident"   ,     "raw.Amp"   ,     "norm.Amp"   , "Tau",    "Condition", "Time")
 cell_values$norm.Amp<-as.numeric(cell_values$norm.Amp)
 cell_values$Time<-as.numeric(cell_values$Time)
+cell_values$Tau<-as.numeric(cell_values$Tau)
+cell_values$Tau[cell_values$Tau==0]<-NA
 
 ggplot(data=cell_values,aes(x=Time, y=norm.Amp, group=Condition, fill=Condition,shape = Condition))+
   coord_cartesian(clip = 'off',ylim=c(0,1.5), xlim = c(0,12))+
@@ -230,6 +259,40 @@ ggplot(data1,aes(`Time [s]`,`IN 0C [pA]`))+
         axis.title.y=element_blank(),        axis.text.y=element_blank(),
         legend.position = "none")
 ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2_example.svg", width = 2, height = 2)
+#############
+#Inaktivation
+################
+cell_values$Tau[cell_values$Tau<(-10)]<-NA
+
+ggplot(data=cell_values,aes(x=Time, y=abs(Tau), group=Condition, fill=Condition,shape = Condition))+
+  coord_cartesian(clip = 'off',ylim=c(0,4), xlim = c(0,12))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_x_continuous(expand = c(0, 0))+
+  stat_summary(fun = mean, 
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar',  width = 0.25,  col="black") +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path',  size=1,  aes(col=Condition)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'point',  size=4, aes(col=Condition)) +
+  scale_colour_manual(values = c("#3c5396", "#b5595f")) +
+  scale_fill_manual(values = c("#bac5e3", "#e6a2a4")) +
+  scale_shape_manual (values =c(21,22))+
+  ylab(expression('tau '[inactivation]*'[s]'))+
+  theme_prism(base_size = 12)
+
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2_v381Y_tau.svg", width = 3.5, height = 2)
+kcna2_tau<-lm(Tau~Condition*Time, data = cell_values)
+anova(kcna2_tau)
+lsmeans(kcna2_tau, pairwise ~ Condition | Time, adjust = "tukey")
+
+summary <- na.omit(cell_values) %>%
+  group_by( Condition, Time) %>% 
+  summarise(meanTau = mean(Tau),
+            sdTau = sd(Tau),
+            nTau = n()) %>%
+  mutate(SEMTau = sdTau/sqrt(nTau))
 ################################################################################################
 ##I/V curve over time 
 ################################################################################################

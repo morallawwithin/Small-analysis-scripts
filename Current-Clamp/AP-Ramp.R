@@ -11,7 +11,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
+dataset<-"EC_L5PN"#"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"##"CA1_PN"#
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
@@ -24,8 +24,8 @@ AP_data<-data.frame(matrix(ncol = 9, nrow = 0))
 colnames(AP_data)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age")
 AP_data_0align<-data.frame(matrix(ncol = 9, nrow = 0))
 colnames(AP_data_0align)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age")
-AP_properties<-data.frame(matrix(ncol = 10, nrow = 0))
-colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","fAHP","risingetime","repolarizingtime","amplitude","age")
+AP_properties<-data.frame(matrix(ncol = 11, nrow = 0))
+colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","AHP10","AHP5","risingetime","repolarizingtime","amplitude","age")
 #Samplerate
 samplerate<-100000 #/s
 
@@ -88,25 +88,24 @@ for ( i in 1:length(cellname)){
   AP_ind_thres<-samplerate*0.006+1
   AP_ind_0<-head(which(AP_data_cell$volt>0),1)
   fAHP_ind<-head(which(AP_data_cell$volt[(AP_ind_0):(range_after+(samplerate*0.006+1))]==min(AP_data_cell$volt[(AP_ind_0):(range_after+(samplerate*0.006+1))])),1)+(AP_ind_0-1)
+  AHP10_ind<-samplerate*0.016+1
+  AHP5_ind<-samplerate*0.011+1
   amplitude<-max(AP_data_cell$volt)-AP_data_cell$volt[AP_ind_thres]
   max_ind<-head(which(AP_data_cell$volt==max(AP_data_cell$volt)),1)
-  FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[fAHP_ind]))
+  AHP10_ind<-head(which(AP_data_cell$volt[(max_ind):(samplerate*0.016+1)]==min(AP_data_cell$volt[(max_ind):(samplerate*0.016+1)])),1)+(max_ind-1)
+  FWHA_ind<-which(AP_data_cell$volt>(amplitude/2+AP_data_cell$volt[AP_ind_thres]))
   FWHA_ind_diff<-c(1,diff(FWHA_ind))
   if(any(FWHA_ind_diff>1)){
-  FWHA_ind_last<-FWHA_ind[head(which(FWHA_ind_diff>1)-1,1)] 
-  repol_ind<-tail(which(AP_data_cell$volt[1:FWHA_ind_last]>(amplitude*0.2+AP_data_cell$volt[fAHP_ind])),1)
-  }else{
-    FWHA_ind_last <-tail(FWHA_ind,1)
-    repol_ind<-tail(which(AP_data_cell$volt>(amplitude*0.2+AP_data_cell$volt[fAHP_ind])),1)
+    FWHA_ind<-FWHA_ind[1:(which(FWHA_ind_diff>1)-1)]
   }
-  
   AP_properties_cell<-data.frame(
     "cell"=cellname[i],
     "genotype"=curr_cell$genotype,
     "rheobase"=AP_data_cell$curr[AP_ind_thres],
     "threshold"=AP_data_cell$volt[AP_ind_thres],
-    "FWHA"=AP_data_cell$time[FWHA_ind_last]-AP_data_cell$time[head(FWHA_ind,1)],
-    "fAHP"=AP_data_cell$volt[fAHP_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
+    "FWHA"=(max(FWHA_ind)-min(FWHA_ind))/samplerate,
+    "AHP10"=AP_data_cell$volt[AHP10_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
+    "AHP5"=AP_data_cell$volt[AHP5_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
     "risingtime"=AP_data_cell$time[max_ind]-AP_data_cell$time[AP_ind_thres],
     "repolarizingtime"=AP_data_cell$time[repol_ind]-AP_data_cell$time[max_ind], 
     #this goes to its minimum
@@ -117,7 +116,7 @@ for ( i in 1:length(cellname)){
   AP_properties<-rbind(AP_properties,AP_properties_cell)
 }
 
-#AP_data_all<-AP_data
+AP_data_all<-AP_data
 AP_properties_all<-AP_properties
 #AP_data_0align_all<-AP_data_0align
 
@@ -132,7 +131,7 @@ AP_properties_all<-AP_properties
 #AP_data_0align<-AP_data_0align_all[AP_data_0align_all$age>16,]
  
 #add old to new
-#AP_properties_all<-rbind(AP_properties,AP_properties_all)
+AP_properties_all<-rbind(AP_properties,AP_properties_all)
 
 AP_data_0align.summary <- AP_data_0align %>%
   group_by(genotype,ind) %>%
@@ -277,7 +276,10 @@ p21<-ggplot(AP_properties_all,aes(age,rheobase, col=as.factor(genotype),fill=as.
     xlab("age [d]") + ylab("rheobase [pA]")+
     theme(legend.position = "none")   
 p21 
-
+ggsave(p31,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/rheobase_vs_age.png")
+ggsave(p31,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/rheobase_vs_age.svg")
 p3<-  ggplot(AP_properties,aes(genotype,threshold,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
@@ -340,7 +342,7 @@ ggsave(p41,width = 4, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/fwha_vs_age.png")
 ggsave(p41,width = 4, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/fwha_vs_age.svg")
-p5<-  ggplot(AP_properties,aes(genotype,abs(fAHP),fill=genotype, col=genotype))+
+p5<-  ggplot(AP_properties,aes(genotype,-AHP10,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
@@ -352,9 +354,24 @@ p5<-  ggplot(AP_properties,aes(genotype,abs(fAHP),fill=genotype, col=genotype))+
 p5  
 wilcox.test(fAHP~genotype,AP_properties)
   ggsave(p5,width = 3, height = 4,
-         file="fAHP.png")
+         file="AHPto10.png")
   ggsave(p5,width = 3, height = 4,
-         file="fAHP.svg")
+         file="AHPto10.svg")
+p51<-  ggplot(AP_properties,aes(genotype,-(AHP5),fill=genotype, col=genotype))+
+    geom_boxplot(outliers = F)+
+  geom_beeswarm(cex=5,size=4)+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
+    theme_prism(base_size = 14,base_family = "Calibri")+
+  ylab("afterhyperpolarization at 5 ms [mV]")+
+  scale_y_continuous(expand = c(0, 0),limits = c(-20,20))+
+  theme(legend.position = "none")    
+p51  
+wilcox.test(AHP5~genotype,AP_properties)
+  ggsave(p51,width = 3, height = 4,
+         file="AHP5.png")
+  ggsave(p5,width = 3, height = 4,
+         file="AHP5.svg")
 p55<-ggplot(AP_properties_all,aes(age,abs(fAHP), col=as.factor(genotype),fill=as.factor(genotype)))+
   geom_point(shape=16, size=4)+
   geom_smooth(method='lm', formula= y~x)+
@@ -372,6 +389,23 @@ ggsave(p55,width = 4, height = 4,
        file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/ahp_vs_age.svg")
 ahp.mdl<-lm(fAHP~age*genotype,data=AP_properties_all)
 anova(ahp.mdl)
+p56<-ggplot(AP_properties_all,aes(age,-(AHP5), col=as.factor(genotype),fill=as.factor(genotype)))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = c("black", "blue")) +
+  scale_fill_manual(values = c("lightgrey",rgb(191/255,191/255,1,1))) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  scale_y_continuous(expand = c(0, 0),limits = c(-20,20))+
+  xlim(c(12,34))+  
+  xlab("age [d]") + ylab("afterhyperpolarization at 5 ms[mV]")+
+  theme(legend.position = "none")  
+p56      
+ggsave(p56,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/ahp_5ms_vs_age.png")
+ggsave(p56,width = 4, height = 4,
+       file="D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/ahp_5ms_vs_age.svg")
+ahp5.mdl<-lm(AHP5~age*genotype,data=AP_properties_all)
+anova(ahp5.mdl)
 p6<-  ggplot(AP_properties,aes(genotype,risingtime*1000,fill=genotype, col=genotype))+
     geom_boxplot()+
   geom_beeswarm(cex=5,size=4)+

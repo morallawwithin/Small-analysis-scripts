@@ -67,7 +67,7 @@ cell10<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1 WT/2022_4_8/",
                      condition ), ncol = 2)
 cell11<-matrix(cbind(paste("D:/Peter/Data/KCNA2/BMK86/KCNA1 WT/2022_4_8/",
                            list.files("D:/Peter/Data/KCNA2/BMK86/KCNA1 WT/2022_4_8",
-                                      pattern="_00(2[2-9]|3[0-2])"),
+                                      pattern="_00(2[2-9]|3[0-2])"),# example for fig 2
                            sep=""),
                      condition ), ncol = 2)
 cell_values_act<-data.frame(matrix(ncol = 4, nrow = 0))

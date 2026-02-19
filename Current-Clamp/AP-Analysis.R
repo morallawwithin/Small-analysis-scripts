@@ -10,7 +10,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the dataset
 ####################
-dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_IN"#"CA1_IN"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#
+dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_IN"#"CA1_IN"##
 data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data.list<-data.list[data.list$protocol=="AP",]
@@ -25,10 +25,10 @@ cellname<-data.list$cell
 ##########
 #prepare everything for the loop
 ##########
-sweep<-data.frame(matrix(ncol = 5, nrow = 0))
-colnames(sweep)<-c("cell","genotype","current","AP","AUC")
-AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
-colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
+sweep<-data.frame(matrix(ncol = 6, nrow = 0))
+colnames(sweep)<-c("cell","genotype","current","AP","AUC","AHP100")
+AP_properties<-data.frame(matrix(ncol = 7, nrow = 0))
+colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA")
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 
@@ -41,10 +41,10 @@ if(file.exists(paste0(dataset,"_sweep.rds"))){
   AP_IFF<-readRDS(paste0(dataset,"_AP_IFF.rds"))
 }
 if (!length(cellname)==length(unique(sweep$cell))){
-  sweep<-data.frame(matrix(ncol = 5, nrow = 0))
-  colnames(sweep)<-c("cell","genotype","current","AP","AUC")
-  AP_properties<-data.frame(matrix(ncol = 5, nrow = 0))
-  colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold")
+  sweep<-data.frame(matrix(ncol = 6, nrow = 0))
+  colnames(sweep)<-c("cell","genotype","current","AP","AUC","AHP100")
+  AP_properties<-data.frame(matrix(ncol = 7, nrow = 0))
+  colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA")
   AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
   colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 for ( i in 1:length(cellname)){
@@ -57,8 +57,11 @@ for ( i in 1:length(cellname)){
   samplerate<-100000 #/s
 #prepare to store AP parameters temporarly 
   AP_nr<-rep(0, sweepnr)
+  AHP100<-rep(0, sweepnr)
   AP_thres<-list()
   AP_isi<-list()
+  AP_ahp10<-list()
+  AP_fwha<-list()
 #which voltage at which step  
   curr<-25*(-4:(sweepnr-5)) 
   if (dataset=="CA1_IN"|dataset=="Cortex_L2&3_IN"){
@@ -86,9 +89,11 @@ for ( i in 1:length(cellname)){
         AP_ind_zero<-AP_ind_raw[Ap_ind_log]
         #prepare for 2. criterion which also finds thresholds
         AP_ind<-c()
+        ahp10<-c()
+        fwha<-c()
         for (iii in 1:length(AP_ind_zero)){
           #take data 5ms before first value above 0mV
-          AP_data<-sweep.data$first_derivate[(AP_ind_zero[iii]-(0.005*samplerate)):(AP_ind_zero[iii])]
+          AP_data<-sweep.data$first_derivate[(AP_ind_zero[iii]-(0.01*samplerate)):(AP_ind_zero[iii])]
           #select indices that are above the firing threshold defined as 20 V/s
           AP_thres_ind<-which(AP_data>20)
           #calculate the difference between the indices >20 V/s and add one to the start
@@ -96,29 +101,43 @@ for ( i in 1:length(cellname)){
           #select the last index of the ones where thedifference to the previous index was >1
           AP_ind_thres<-AP_thres_ind[tail(which(AP_thres_diff>1),1)]
           #store this index
-          AP_ind[iii]<-AP_ind_zero[iii]-(0.005*samplerate)+AP_ind_thres #threshold
+          AP_ind[iii]<-AP_ind_zero[iii]-(0.01*samplerate)+AP_ind_thres #threshold
+          #calculate ahp 10 ms
+          ahp10[iii]<-sweep.data[,2][AP_ind[iii]+0.01*samplerate]-mean(sweep.data[,2][(AP_ind[iii]-0.005*samplerate):AP_ind[iii]])
+          #calculate fwha
+          amplitude<-max(sweep.data[,2][AP_ind_zero[iii]:(AP_ind_zero[iii]+0.002*samplerate)])-sweep.data[,2][AP_ind[iii]]
+          fwha_ind<-which(sweep.data[,2][AP_ind[iii]:(AP_ind[iii]+0.004*samplerate)]>sweep.data[,2][AP_ind[iii]]+amplitude/2)
+          if (dataset=="CA1_IN"|dataset=="Cortex_L2&3_IN"){
+            fwha_ind<-which(sweep.data[,2][AP_ind[iii]:(AP_ind[iii]+0.002*samplerate)]>sweep.data[,2][AP_ind[iii]]+amplitude/2) 
+          }
+          fwha[iii]<-(max(fwha_ind)-min(fwha_ind))/samplerate
       }
-        #store the number of APs
+        #store the number of APs and AHP after the sweep
         AP_nr[ii]<-length(AP_ind)
+        AHP100[ii]<-mean(sweep.data[,2][(0.91*samplerate):(0.92*samplerate)])-mean(sweep.data[,2][1:(0.01*samplerate)])
         #store the threshold of APs
         AP_thres[[ii]]<-sweep.data[,2][AP_ind]
         #store the IFF of APs
         AP_isi[[ii]]<-1/diff(sweep.data[,1][AP_ind] )
-        #store the time of AP
+        #store the AHP 10 ms
+        AP_ahp10[[ii]]<-ahp10
+        #store the FWHA of APs
+        AP_fwha[[ii]]<-fwha
 ###############      
 #uncomment the section below to display thresolds for each analyzed sweep
 #############        
-      #AP_df<-data.frame('ind'=sweep.data$`Time [s]`[AP_ind],'volt'=sweep.data$`INcc 0 [mV]`[AP_ind])
+      #AP_df<-data.frame('ind'=sweep.data[[1]][AP_ind],'volt'=sweep.data[[2]][AP_ind])
       #print(
-      #ggplot(sweep.data,aes(`Time [s]`,`INcc 0 [mV]`))+
+      #ggplot(sweep.data,aes(sweep.data[[1]],sweep.data[[2]]))+
       #geom_line(aes(`Time [s]`,first_derivate), color='grey')+
-      #geom_line()+
+     # geom_line()+
       #geom_point(data=AP_df,aes(`ind`,volt),color="red")+
-      #ylim(c(-80,50))
-      #)
+     # ylim(c(-80,50))
+     # )
     }
     else {
       AP_nr[ii]<-0
+      AHP100[ii]<-mean(sweep.data[,2][(0.91*samplerate):(0.92*samplerate)])-mean(sweep.data[,2][1:(0.01*samplerate)])
     }}
 
   #store the number of APs per cell
@@ -127,7 +146,8 @@ for ( i in 1:length(cellname)){
                "genotype"=rep(curr_cell$genotype,sweepnr),
                "current"=curr[1:sweepnr], 
                "AP"= AP_nr,
-               "AUC"=integrate(approxfun(curr[1:sweepnr],AP_nr),0,curr[sweepnr])[1]))
+               "AUC"=integrate(approxfun(curr[1:sweepnr],AP_nr),0,curr[sweepnr])[1],
+               "AHP100"=AHP100))
   if(any(AP_nr>0)){
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_thres)<-curr
@@ -140,7 +160,9 @@ for ( i in 1:length(cellname)){
                          "genotype"=rep(curr_cell$genotype,length(unlist(AP_thres))),
                          "current"=as.numeric( stringr::str_extract(AP_thres_names,"[123]?[2570][05]")),
                          "AP_Nr"=as.numeric(AP_thres_nr),
-                         "Threshold"=unlist(AP_thres)
+                         "Threshold"=unlist(AP_thres),
+                         "AHP10"=unlist(AP_ahp10),
+                         "FWHA"=unlist(AP_fwha)
                          ))
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_isi)<-curr
@@ -160,6 +182,9 @@ for ( i in 1:length(cellname)){
 sweep$genotype<-factor(sweep$genotype,levels = c("Kcna2+/P405L","Kcna2+/+"))
 sweep$age<-data.list$age[match(sweep$cell,data.list$cell)]
 sweep$sex<-data.list$sex[match(sweep$cell,data.list$cell)]
+sweep$type<-data.list$Type[match(sweep$cell,data.list$cell)]
+AP_properties$age<-data.list$age[match(AP_properties$cell,data.list$cell)]
+AP_IFF$age<-data.list$age[match(AP_IFF$cell,data.list$cell)]
 saveRDS(sweep,paste0(dataset,"_sweep.rds"))
 saveRDS(AP_properties,paste0(dataset,"_AP_properties.rds"))
 saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
@@ -169,10 +194,14 @@ saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
 ##########
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
 #sweep<-sweep[sweep$age<17,]
+#AP_properties<-AP_properties[AP_properties$age<17,]
+#AP_IFF<-AP_IFF[AP_IFF$age<17,]
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+#AP_properties<-AP_properties[AP_properties$age>16,]
 #sweep<-sweep[sweep$age>16,]
+#AP_IFF<-AP_IFF[AP_IFF$age>16,]
 #sweep<-sweep[sweep$sex=="m",]
-
+#sweep<-sweep.all[sweep.all$type=="reg",]
 
 p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
   stat_summary(fun = mean, 
@@ -193,13 +222,13 @@ p1<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype
 p1
 
 p1_IN<-ggplot(sweep[sweep$current>-25,],aes(current,AP,group=genotype, col=genotype,fill=genotype))+  
-  stat_summary(fun = mean, 
-               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
-               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+  stat_summary(fun = median, 
+               fun.min = function(x) quantile(x,0.25), 
+               fun.max = function(x) quantile(x,0.75),
                geom = 'errorbar',  width = 30,size=1,  position = position_dodge(width = 0.5)) +
-  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+  stat_summary(fun = median, fun.min = median, fun.max = median,
                geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
-  stat_summary(fun = mean,
+  stat_summary(fun = median,
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c( "blue","black")) +
   theme_prism(base_size = 14,base_family = "Calibri")+
@@ -246,33 +275,59 @@ ggsave(p11,width = 4, height = 4,
 auc.mdl<-lm(value~age*genotype,data=sweep2)
 anova(auc.mdl)
 
+sweep3<-sweep
+sweep3$AHP100[sweep3$AP==0]<-NA
+p12<-ggplot(sweep3[sweep3$current>-25,],aes(current,-AHP100,group=genotype, col=genotype,fill=genotype))+  
+  stat_summary(fun = median, 
+               fun.min = function(x) quantile(x,0.25), 
+               fun.max = function(x) quantile(x,0.75),
+               geom = 'errorbar',  width = 30,size=1,  position = position_dodge(width = 0.5)) +
+  stat_summary(fun = median, fun.min = median, fun.max = median,
+               geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
+  stat_summary(fun = median,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = c( "blue","black")) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  #coord_cartesian(clip = 'off',ylim=c(0,3), xlim = c(0,310))+
+  scale_y_continuous(expand = c(0, 0))+
+  scale_x_continuous(expand = c(0, 0))+
+  theme(legend.position = "none")+
+  xlab("injected current [pA]") + ylab("ahp at 100 ms [mV]")
+p12
+ggsave(p12,width = 4, height = 4,
+       file="AHP 100ms after pulse.png")
+ggsave(p12,width = 4, height = 4,
+       file="AHP 100ms after pulse.svg")
 
 
 
 
-
-p2<-ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
+ggplot(AP_IFF,aes(as.factor(AP_Nr),IFF, col=genotype))+
   geom_boxplot()+
   scale_colour_manual(values = c("black", "blue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1))) +
   theme_prism(base_size = 14)+
   xlab("AP number") + ylab("inst. firing fre. [Hz]")
-ggsave(p2,width = 6, height = 4,
-       file="instfiringfreqbox.png")
 
-ggplot(AP_IFF,aes(AP_Nr,IFF,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
-  stat_summary(fun = mean, 
-               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)), 
-               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+
+p2<-ggplot(AP_IFF,aes(AP_Nr,IFF,group=as.factor(genotype), col=as.factor(genotype),fill=as.factor(genotype)))+  
+  stat_summary(fun = median, 
+               fun.min = function(x) quantile(x,0.25), 
+               fun.max = function(x) quantile(x,0.75),
                geom = 'errorbar',  width = 1,size=1,  position = position_dodge(width = 0.5)) +
-  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+  stat_summary(fun = median, fun.min = median, fun.max = median,
                geom = 'path',  size=1, position = position_dodge(width = 0.5), aes(col=as.factor(genotype))) +
-  stat_summary(fun = mean,
+  stat_summary(fun = median,
                geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
   scale_colour_manual(values = c("black", "blue")) +
   theme_prism(base_size = 14)+
+  theme(legend.position = "none")+
   xlab("number of AP") + ylab("instantenous firing frequency")
-
+p2
+ggsave(p2,width = 4, height = 4,
+       file="instfiringfreq.png")
+ggsave(p2,width = 4, height = 4,
+       file="instfiringfreq.svg")
 
 model_IFF<-lm(IFF~AP_Nr+current+genotype,data= AP_IFF)
 summary(model_IFF)
@@ -291,15 +346,22 @@ AP_IFF_SFI<-AP_IFF[cell_curr_more_than_1AP,]
 start<-AP_IFF_SFI[!c(1,diff(as.integer(as.factor(AP_IFF_SFI$cell_curr))))==0,]
 end<-AP_IFF_SFI[!c(diff(as.integer(as.factor(AP_IFF_SFI$cell_curr))),1)==0,]
 start$SFI<-end$IFF/start$IFF
-p4<-ggplot(start,aes(genotype, SFI,color=genotype))+
+p4<-ggplot(start[start$current==225,],aes(genotype, SFI,color=genotype))+
   geom_boxplot()+
-  geom_beeswarm()+
+  geom_beeswarm(cex=5,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
   ylab("SFA")+
-  theme_prism(base_size = 14)
-ggsave(p4,width = 4, height = 4,
-       file="spike-frequency-adaptation.png") 
+  scale_y_continuous(expand = c(0, 0),lim=c(0,1))+
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")
+p4
+ggsave(p4,width = 3, height = 4,
+       file="spike-frequency-adaptation_225pA.png") 
+ggsave(p4,width = 3, height = 4,
+       file="spike-frequency-adaptation_225pA.svg") 
+
+t.test(SFI~genotype,start[start$current==225,])
 
 for (x in AP_IFF_SFI$cell_curr){
   current_cell_curr<-AP_IFF_SFI$IFF[AP_IFF_SFI$cell_curr==x]
@@ -312,17 +374,92 @@ for (x in AP_IFF_SFI$cell_curr){
   }
 p5<-ggplot(start[start$current==200,],aes(genotype, adaptation_index,color=genotype,fill=genotype))+
   geom_boxplot()+
-  geom_beeswarm(cex=5,size=4)+
+  geom_beeswarm(cex=2,size=4)+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
   ylab("SFA index")+
   theme_prism(base_size = 14)+
   theme(legend.position = "none")    
 p5
-wilcox.test(adaptation_index~genotype,start[start$current==200,])
+wilcox.test(adaptation_index~genotype,start[start$current==125,])
 ggsave(p5,width = 4, height = 4,
        file="spike-frequency-adaptation-index.png") 
 
+#FWHA over time
+AP_225<-AP_properties[AP_properties$current==225,]
+AP_225<-AP_225[!AP_225$FWHA==-Inf,]
+Ap_225_fl<-data.frame(matrix(ncol = 9, nrow = 0))
+colnames(Ap_225_fl)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA","age","position")
+for (i in unique(AP_225$cell)){
+  Ap_225_i<-AP_225[AP_225$cell==i,]
+  if(any(Ap_225_i$AP_Nr>1)){
+  Ap_225_fl<-rbind(Ap_225_fl,
+                   cbind(Ap_225_i[Ap_225_i$AP_Nr==2,],"position"="second"),
+                   cbind(Ap_225_i[Ap_225_i$AP_Nr==max(Ap_225_i$AP_Nr),],"position"="last"))}
+}
+Ap_225_fl$position<-factor(Ap_225_fl$position, levels = c("second","last"))
+p6<-ggplot(Ap_225_fl,aes(position, FWHA*1000,color=genotype,fill=genotype))+
+  geom_boxplot(outliers = F)+
+  #geom_point(size=4, position=position_dodge(width = 0.75))+
+  geom_beeswarm(cex=2,size=4, dodge.width=0.75)+
+  stat_summary(fun = median, geom = "path",
+               mapping = aes(group = genotype),
+               position=position_dodge(width = 0.75))+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
+  ylab("FWHA [ms]")+
+  scale_y_continuous(expand = c(0, 0),limits = c(0,4))+
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")    
+p6
+ggsave(p6,width = 3, height = 4,
+       file="Train-FWHA.png") 
+ggsave(p6,width = 3, height = 4,
+       file="Train-FWHA.svg")
+p7<-ggplot(Ap_225_fl,aes(position, AHP10,color=genotype,fill=genotype))+
+  geom_boxplot(outliers = F)+
+  #geom_point(size=4, position=position_dodge(width = 0.75))+
+  geom_beeswarm(cex=2,size=4, dodge.width=0.75)+
+  stat_summary(fun = median, geom = "path",
+               mapping = aes(group = genotype),
+               position=position_dodge(width = 0.75))+
+  scale_colour_manual(values = c("black", "blue","lightblue")) +
+  scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
+  ylab("AHP at 10 ms [mV]")+
+  scale_y_continuous(expand = c(0, 0),limits = c(-15,25))+
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")    
+p7
+ggsave(p7,width = 3, height = 4,
+       file="Train-AHP10.png") 
+ggsave(p7,width = 3, height = 4,
+       file="Train-AHP10.svg")
+
+Ap_225_fl$cell<-as.factor(Ap_225_fl$cell)
+Ap_225_fl$genotype<-as.factor(Ap_225_fl$genotype)
+Ap_225_fl$position<-as.factor(Ap_225_fl$position)
+fwha.aov <- anova_test(
+  data = Ap_225_fl, dv = FWHA, wid = cell,
+  within = position,
+  between=genotype)
+get_anova_table(fwha.aov)
+ahp.aov <- anova_test(
+  data = Ap_225_fl, dv = AHP10, wid = cell,
+  within = position,
+  between=genotype)
+get_anova_table(ahp.aov)
+
+p7<-ggplot(sweep[sweep$current==225,],aes(genotype,-AHP100,color=genotype,fill=genotype))+
+  geom_boxplot(outliers = F)+
+  #geom_point(size=4, position=position_dodge(width = 0.75))+
+  geom_beeswarm(cex=2,size=4, dodge.width=0.75)+
+  scale_colour_manual(values = c("blue","black" )) +
+  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"white"))+
+  ylab("AHP @300pA [ms]")+
+  theme_prism(base_size = 14)+
+  theme(legend.position = "none")    
+p7
+wilcox.test(AHP100~genotype,data=sweep[sweep$current==225,])
 
 ##Examples Cortex
 data1<-readABF(cells$file[1])
