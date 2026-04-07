@@ -10,7 +10,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the dataset
 ####################
-dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_IN"#"CA1_IN"##
+dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_IN"#"CA1_IN"##
 data.list <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data.list<-data.list[data.list$protocol=="AP",]

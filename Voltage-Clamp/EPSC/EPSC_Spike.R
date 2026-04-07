@@ -7,6 +7,7 @@ library(lme4)
 library(lmerTest)
 
 setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/EPSC_Spike")
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN_p30/EPSC_Spike")
 
 filelist = list.files(pattern = ".*.txt")
 
@@ -69,6 +70,7 @@ p3<-ggplot(data_summary,aes(Genotype,mnAmp,fill=Genotype, col=Genotype))+
   ylab("amplitude")+
   theme_prism(base_size = 14)+
   theme(legend.position = "none")  
+p3
 ggsave(p3,width = 3, height = 4,
        file="EPSC_amp_boxplot.png")
 

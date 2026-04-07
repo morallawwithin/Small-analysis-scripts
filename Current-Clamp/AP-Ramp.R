@@ -11,21 +11,21 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"EC_L5PN"#"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"##"CA1_PN"#
+dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"EC_L5PN"##"CA1_PN"#
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="ramp",]
-cells<-data[,c(2,3,5)]
+cells<-data[,c(2,3,5,7)]
 cellname<-data$cell
 ##########
 #prepare everything for the loop
 ##########
-AP_data<-data.frame(matrix(ncol = 9, nrow = 0))
-colnames(AP_data)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age")
-AP_data_0align<-data.frame(matrix(ncol = 9, nrow = 0))
-colnames(AP_data_0align)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age")
-AP_properties<-data.frame(matrix(ncol = 11, nrow = 0))
-colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","AHP10","AHP5","risingetime","repolarizingtime","amplitude","age")
+AP_data<-data.frame(matrix(ncol = 10, nrow = 0))
+colnames(AP_data)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age", "intra")
+AP_data_0align<-data.frame(matrix(ncol = 10, nrow = 0))
+colnames(AP_data_0align)<-c("volt","curr","time","ind","first_deriv","second_deriv","cell","genotype","age","intra")
+AP_properties<-data.frame(matrix(ncol = 12, nrow = 0))
+colnames(AP_properties)<-c("cell","genotype","rheobase","threshold","FWHA","AHP10","AHP5","risingetime","repolarizingtime","amplitude","age","intra")
 #Samplerate
 samplerate<-100000 #/s
 
@@ -62,6 +62,7 @@ for ( i in 1:length(cellname)){
   AP_data_cell$cell<-rep(cellname[i],length(AP_data_cell$volt))
   AP_data_cell$genotype<-rep(curr_cell$genotype,length(AP_data_cell$volt))
   AP_data_cell$age<-rep(curr_cell$age,length(AP_data_cell$volt))
+  AP_data_cell$intra<-rep(curr_cell$intra,length(AP_data_cell$volt))
   AP_data_0align<-rbind(AP_data_0align,AP_data_cell)
   #select indices that are above the firing threshold defined as 20 V/s
   AP_thres_ind<-which(AP_data_cell$first_deriv[1:(samplerate*0.006+1)]>20)
@@ -84,6 +85,7 @@ for ( i in 1:length(cellname)){
   AP_data_cell$cell<-rep(cellname[i],length(AP_data_cell$volt))
   AP_data_cell$genotype<-rep(curr_cell$genotype,length(AP_data_cell$volt))
   AP_data_cell$age<-rep(curr_cell$age,length(AP_data_cell$volt))
+  AP_data_cell$intra<-rep(curr_cell$intra,length(AP_data_cell$volt))
   AP_data<-rbind(AP_data,AP_data_cell)
   AP_ind_thres<-samplerate*0.006+1
   AP_ind_0<-head(which(AP_data_cell$volt>0),1)
@@ -107,10 +109,11 @@ for ( i in 1:length(cellname)){
     "AHP10"=AP_data_cell$volt[AHP10_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
     "AHP5"=AP_data_cell$volt[AHP5_ind]-mean(AP_data_cell$volt[1:(samplerate*0.001)]),
     "risingtime"=AP_data_cell$time[max_ind]-AP_data_cell$time[AP_ind_thres],
-    "repolarizingtime"=AP_data_cell$time[repol_ind]-AP_data_cell$time[max_ind], 
+    "repolarizingtime"=AP_data_cell$time[fAHP_ind]-AP_data_cell$time[max_ind], 
     #this goes to its minimum
     "amplitude"=amplitude,
-    "age"=curr_cell$age
+    "age"=curr_cell$age,
+    "intra"=curr_cell$intra
   )
 
   AP_properties<-rbind(AP_properties,AP_properties_cell)
@@ -120,18 +123,18 @@ AP_data_all<-AP_data
 AP_properties_all<-AP_properties
 #AP_data_0align_all<-AP_data_0align
 
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
 #AP_data<-AP_data_all[AP_data_all$age<17,]
-#AP_properties<-AP_properties_all[AP_properties_all$age<17,]
+AP_properties<-AP_properties_all[AP_properties_all$age<17,]
 #AP_data_0align<-AP_data_0align_all[AP_data_0align_all$age<17,]
  
-#setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
 #AP_data<-AP_data_all[AP_data_all$age>16,]
-#AP_properties<-AP_properties_all[AP_properties_all$age>16,]
+AP_properties<-AP_properties_all[AP_properties_all$age>16,]
 #AP_data_0align<-AP_data_0align_all[AP_data_0align_all$age>16,]
  
 #add old to new
-AP_properties_all<-rbind(AP_properties,AP_properties_all)
+#AP_properties_all<-rbind(AP_properties,AP_properties_all)
 
 AP_data_0align.summary <- AP_data_0align %>%
   group_by(genotype,ind) %>%
@@ -348,15 +351,15 @@ p5<-  ggplot(AP_properties,aes(genotype,-AHP10,fill=genotype, col=genotype))+
   scale_colour_manual(values = c("black", "blue","lightblue")) +
   scale_fill_manual(values = c("white",rgb(191/255,191/255,1,1),"white"))+
     theme_prism(base_size = 14,base_family = "Calibri")+
-  ylab("afterhyperpolarization [mV]")+
+  ylab("afterhyperpolarization after 10 ms [mV]")+
   scale_y_continuous(expand = c(0, 0),limits = c(0,20))+
   theme(legend.position = "none")    
 p5  
-wilcox.test(fAHP~genotype,AP_properties)
+wilcox.test(AHP10~genotype,AP_properties)
   ggsave(p5,width = 3, height = 4,
-         file="AHPto10.png")
+         file="AHP10.png")
   ggsave(p5,width = 3, height = 4,
-         file="AHPto10.svg")
+         file="AHP10.svg")
 p51<-  ggplot(AP_properties,aes(genotype,-(AHP5),fill=genotype, col=genotype))+
     geom_boxplot(outliers = F)+
   geom_beeswarm(cex=5,size=4)+
