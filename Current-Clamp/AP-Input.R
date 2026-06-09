@@ -13,7 +13,7 @@ setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
 ####################
 ##select the cells
 ####################
-dataset<-"Cortex_L2&3_PN_p30"#"Cortex_L2&3_PN"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
+dataset<-"Cortex_L2&3_PN"#"Cortex_L2&3_PN_p30"#"CA1_PN"#"EC_L5PN"#"Cortex_L2&3_PN"
 data <- read_excel(paste0(dataset,".xlsx"))
 setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
 data<-data[data$protocol=="AP_Input",]
@@ -78,11 +78,11 @@ sag_data_all<-sag_data
 #sag_data_all<-rbind(sag_data_all,sag_data)
 
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
-#pass_properties<-pass_properties[pass_properties$age<17,]
+pass_properties<-pass_properties[pass_properties$age<17,]
 #sag_data<-sag_data[sag_data$age<17,]
 
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
-#pass_properties<-pass_properties[pass_properties$age>16,]
+pass_properties<-pass_properties[pass_properties$age>16,]
 #sag_data<-sag_data[sag_data$age>16,]
 
 

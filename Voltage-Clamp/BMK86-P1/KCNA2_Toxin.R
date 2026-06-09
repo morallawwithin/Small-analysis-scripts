@@ -129,28 +129,9 @@ for ( i in 1:length(cellname)){
       cond[ii]<-max(sweep.max/(volt[i]+95))
       sweep.tail<-sweep.data[c(20000:21000),c(1,3)]
       tail_curr[ii]<-min(sweep.tail)
-      # --- Tau of Inactivation ---
-      # Fit decay after peak
-      peak_idx <- which(sweep.data[,3]==max(sweep.data[c(500:15000),c(1,3)]))
-      decay_data <- sweep.data[peak_idx:20000,c(1,3)]
-      #decay_data[,2]<-decay_data[,2]-min(decay_data[,2])
-      colnames(decay_data)<-c("time","current")
-      try({
-        fit <- nlsLM(current ~ A * exp(time / tau) + C,
-                     start = list(A = decay_data$current[1], tau = -0.5, C = min(decay_data$current)),
-                     control = nls.lm.control(maxiter = 500), data=decay_data)
-        tau[ii] <- coef(fit)["tau"]
-        decay_data$fit<-predict(fit)
-        if(ii==112){
-        print(
-        ggplot(decay_data, aes(x = time)) +
-          geom_line(aes(y = current), color = "blue", size = 1, alpha = 0.6) +
-          geom_line(aes(y = fit), color = "red", size = 1) +
-          theme_minimal()
-        )}
-      }, silent = TRUE)
-      
-      
+      # --- Inactivation proxy ---
+      # end/peak
+      tau[ii] <- mean(sweep.data[c(18000:19500),c(3)])/max(sweep.data[c(500:19500),c(3)])
     }
     cond_norm<-cond/max(cond)
     tail_norm<-tail_curr/min(tail_curr)
@@ -230,10 +211,10 @@ cell_values$Tau[21]<-NA
 #############
 #Inaktivation
 ################
-cell_values$Tau[cell_values$Tau<(-10)]<-NA
+#cell_values$Tau[cell_values$Tau<(-10)]<-NA
 
 ggplot(data=cell_values,aes(x=Time, y=abs(Tau), group=Condition, fill=Condition,shape = Condition))+
-  coord_cartesian(clip = 'off',ylim=c(0,4), xlim = c(0,12))+
+  coord_cartesian(clip = 'off',ylim=c(0,1), xlim = c(0,12))+
   scale_y_continuous(expand = c(0, 0))+
   scale_x_continuous(expand = c(0, 0))+
   stat_summary(fun = mean, 
@@ -250,7 +231,7 @@ ggplot(data=cell_values,aes(x=Time, y=abs(Tau), group=Condition, fill=Condition,
   ylab(expression('tau '[inactivation]*'[s]'))+
   theme_prism(base_size = 12)
 
-ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2_tau.svg", width = 3.5, height = 2)
+ggsave(filename = "D:/Peter/Analysis/KCNA2/BMK86-P1/KCNA2_inact.svg", width = 3.5, height = 2)
 kcna2_tau<-lm(Tau~Condition*Time, data = cell_values)
 anova(kcna2_tau)
 lsmeans(kcna2_tau, pairwise ~ Condition | Time, adjust = "tukey")

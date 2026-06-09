@@ -27,8 +27,8 @@ cellname<-data.list$cell
 ##########
 sweep<-data.frame(matrix(ncol = 6, nrow = 0))
 colnames(sweep)<-c("cell","genotype","current","AP","AUC","AHP100")
-AP_properties<-data.frame(matrix(ncol = 7, nrow = 0))
-colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA")
+AP_properties<-data.frame(matrix(ncol = 8, nrow = 0))
+colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA","time")
 AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
 colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 
@@ -43,8 +43,8 @@ if(file.exists(paste0(dataset,"_sweep.rds"))){
 if (!length(cellname)==length(unique(sweep$cell))){
   sweep<-data.frame(matrix(ncol = 6, nrow = 0))
   colnames(sweep)<-c("cell","genotype","current","AP","AUC","AHP100")
-  AP_properties<-data.frame(matrix(ncol = 7, nrow = 0))
-  colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA")
+  AP_properties<-data.frame(matrix(ncol = 8, nrow = 0))
+  colnames(AP_properties)<-c("cell","genotype","current","AP_Nr","Threshold","AHP10","FWHA","time")
   AP_IFF<-data.frame(matrix(ncol = 5, nrow = 0))
   colnames(AP_IFF)<-c("cell","genotype","current","AP_Nr","IFF")
 for ( i in 1:length(cellname)){
@@ -60,6 +60,7 @@ for ( i in 1:length(cellname)){
   AHP100<-rep(0, sweepnr)
   AP_thres<-list()
   AP_isi<-list()
+  AP_time<-list()
   AP_ahp10<-list()
   AP_fwha<-list()
 #which voltage at which step  
@@ -119,6 +120,8 @@ for ( i in 1:length(cellname)){
         AP_thres[[ii]]<-sweep.data[,2][AP_ind]
         #store the IFF of APs
         AP_isi[[ii]]<-1/diff(sweep.data[,1][AP_ind] )
+        #store the index
+        AP_time[[ii]]<-sweep.data[,1][AP_ind] 
         #store the AHP 10 ms
         AP_ahp10[[ii]]<-ahp10
         #store the FWHA of APs
@@ -162,7 +165,8 @@ for ( i in 1:length(cellname)){
                          "AP_Nr"=as.numeric(AP_thres_nr),
                          "Threshold"=unlist(AP_thres),
                          "AHP10"=unlist(AP_ahp10),
-                         "FWHA"=unlist(AP_fwha)
+                         "FWHA"=unlist(AP_fwha),
+                         "time"=unlist(AP_time)
                          ))
   #store the threshold of APs per cell and associate the number of the spike to the threshold
   names(AP_isi)<-curr
@@ -194,7 +198,7 @@ saveRDS(AP_IFF,paste0(dataset,"_AP_IFF.rds"))
 ##########
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P12-P16")
 #sweep<-sweep[sweep$age<17,]
-#AP_properties<-AP_properties[AP_properties$age<17,]
+AP_properties<-AP_properties[AP_properties$age<17,]
 #AP_IFF<-AP_IFF[AP_IFF$age<17,]
 #setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/Cortex_L2&3_PN/P17-P20")
 #AP_properties<-AP_properties[AP_properties$age>16,]
