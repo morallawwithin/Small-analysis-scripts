@@ -1,0 +1,393 @@
+library(readABF)
+library(tidyverse)
+library(readxl)
+library(ggprism)
+library(ggbeeswarm)
+library(lsmeans)
+
+####################################################################
+## Outside-out patch, voltage clamp, K+ currents
+## protocol: holding -70 mV, prepulse -110 mV,
+##           test pulse -80 ... +60 mV in 10 mV steps (15 sweeps), ~1.5 s
+## analysis: peak current (pA and pA/pF), inactivation,
+##           conductance G = I/(V-EK), Boltzmann fit per patch
+####################################################################
+
+setwd("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys")
+
+####################
+##select the dataset
+####################
+dataset<-"Outside_Out_K"
+data.list <- read_excel(paste0(dataset,".xlsx"))
+setwd(paste0("D:/Peter/Analysis/KCNA2/P405L_Mice/E-Phys/",dataset))
+data.list<-data.list[data.list$protocol=="act",]
+
+####################
+##select the cells
+####################
+cells<-data.list[,c("file","genotype","age")]
+cellname<-data.list$cell
+
+####################
+##recording and protocol parameters - adjust here
+####################
+channel<-"IN 0C"        #leak subtracted channel; raw channel would be "IN 0"
+samplerate<-100000      #/s
+volt<-10*(-8:6)         #-80 ... +60 mV
+EK<- -75                #mV, K+ reversal potential of your solutions
+step_start<-0.19        #s, start of the test pulse
+step_end<-1.68          #s, end of the test pulse
+peak_blank<-0.002       #s, skipped after the step to avoid the capacitive transient
+ss_window<-0.05         #s, steady state window at the end of the step
+base_window<-0.02       #s, baseline window in front of the step
+smooth_ms<-0.5          #ms, boxcar for peak detection (patch data are noisy)
+plot_fits<-TRUE         #print the Boltzmann fit of every patch
+
+genotype_levels<-c("Kcna2+/P405L","Kcna2+/+")
+genotype_colours<-c("blue","black")
+
+##indices used in every sweep
+base_ind<-(round((step_start-base_window)*samplerate)+1):(round(step_start*samplerate)+1)
+peak_ind<-(round((step_start+peak_blank)*samplerate)+1):(round(step_end*samplerate)+1)
+ss_ind<-(round((step_end-ss_window)*samplerate)+1):(round(step_end*samplerate)+1)
+smooth_n<-round(smooth_ms/1000*samplerate)
+
+##membrane capacitance from the abf header (amplifier telegraph, per channel)
+get_membrane_cap<-function(data,ch){
+  cm<-NA
+  if(!is.null(data$sections$ADCsec)&&length(data$sections$ADCsec)>=ch){
+    cm<-data$sections$ADCsec[[ch]]$fTelegraphMembraneCap
+  }
+  if(is.null(cm)) cm<-NA
+  if(!is.na(cm)){
+    if(cm<=0){cm<-NA                  #telegraph off -> no value stored
+    } else if(cm<1e-6){cm<-cm*1e12}   #stored in F -> pF
+  }
+  cm
+}
+
+##Boltzmann as in KCNA1_act.R
+activation <- function(g, Vhalf, k, c, V) (g/(1+exp((Vhalf-V)/k))+c)
+
+##########
+#prepare everything for the loop
+##########
+sweep<-data.frame(matrix(ncol = 11, nrow = 0))
+colnames(sweep)<-c("cell","genotype","age","voltage","peak","peak_dens",
+                   "steady","ss_ratio","inactivation","cond","cond_norm")
+
+patch<-data.frame(matrix(ncol = 9, nrow = 0))
+colnames(patch)<-c("cell","genotype","age","Cm","Imax","Imax_dens","gmax","Vhalf","k")
+
+########
+#loop starts here
+#######
+for ( i in 1:length(cellname)){
+  #select the patch
+  curr_cell<-cells[i,]
+  #read data of one patch
+  data<-readABF(curr_cell$file)
+  #How many sweeps
+  sweepnr<-length(data$data)
+  #select the channel; ch+1 is the column in as.data.frame(data,sweep=ii)
+  ch<-which(trimws(data$channelNames)==channel)
+  if(length(ch)==0) stop(paste0("channel ",channel," not found in ",curr_cell$file))
+
+  #membrane capacitance, fall back to the column Cm of the excel sheet
+  cm<-get_membrane_cap(data,ch)
+  if(is.na(cm)&&!is.null(data.list$Cm)) cm<-data.list$Cm[i]
+
+  #prepare to store the sweep parameters temporarly
+  curr<-rep(NA, sweepnr)
+  ss<-rep(NA, sweepnr)
+
+  #do the sweep analysis
+  for (ii in 1:sweepnr){
+    #read the sweep data; same as as.data.frame(data,sweep=ii)[,ch+1], but faster
+    trace<-data$data[[ii]][,ch]
+    #baseline in front of the step
+    trace<-trace-mean(trace[base_ind])
+    #boxcar filter, only used for the peak
+    trace_s<-as.numeric(stats::filter(trace,rep(1/smooth_n,smooth_n)))
+    #peak current during the step
+    curr[ii]<-max(trace_s[peak_ind],na.rm=TRUE)
+    #steady state current at the end of the step
+    ss[ii]<-mean(trace[ss_ind])
+  }
+
+  #conductance, only where there is outward driving force
+  cond<-curr/(volt[1:sweepnr]-EK)
+  cond[volt[1:sweepnr]<=EK]<-NA
+  cond_norm<-cond/max(cond,na.rm=TRUE)
+
+  #store the sweep values of this patch
+  sweep<-rbind(sweep,
+               data.frame("cell"=rep(cellname[i],sweepnr),
+                          "genotype"=rep(curr_cell$genotype,sweepnr),
+                          "age"=rep(curr_cell$age,sweepnr),
+                          "voltage"=volt[1:sweepnr],
+                          "peak"=curr,
+                          "peak_dens"=curr/cm,
+                          "steady"=ss,
+                          "ss_ratio"=ss/curr,
+                          "inactivation"=1-ss/curr,
+                          "cond"=cond,
+                          "cond_norm"=cond_norm))
+
+  #Boltzmann fit of this patch
+  sweep.fit<-data.frame("voltage"=volt[1:sweepnr],"conductance"=cond_norm)
+  sweep.fit<-sweep.fit[!is.na(sweep.fit$conductance),]
+  fit_coef<-c("myg"=NA,"myVhalf"=NA,"myk"=NA,"myc"=NA)
+  model<-tryCatch({
+    SS<-getInitial(conductance~SSlogis(voltage,alpha,xmid,scale),data=sweep.fit)
+    nls(conductance ~ activation(myg,myVhalf,myk,myc,voltage), data=sweep.fit,
+        start=list(myg=SS["alpha"],myVhalf=SS["xmid"],myk=SS["scale"],myc=0),
+        control = nls.control(maxiter = 400))
+  }, error=function(e){warning(paste0("no fit for ",cellname[i],": ",conditionMessage(e)));NULL})
+
+  if(!is.null(model)){
+    fit_coef<-coef(model)
+    if(plot_fits){
+      curve_df <- data.frame("voltage" = seq(min(sweep.fit$voltage), max(sweep.fit$voltage),
+                                             length.out = 100))
+      curve_df$prob <- predict(model, curve_df, type = "response")
+      print(
+        ggplot(curve_df, aes(x = voltage, y = prob)) +
+          geom_line() +
+          geom_point(data=sweep.fit,aes(x=voltage,y=conductance))+
+          ggtitle(cellname[i])+
+          theme_classic())
+    }
+  }
+
+  #store the patch values
+  patch<-rbind(patch,
+               data.frame("cell"=cellname[i],
+                          "genotype"=curr_cell$genotype,
+                          "age"=curr_cell$age,
+                          "Cm"=cm,
+                          "Imax"=curr[which(volt==60)],
+                          "Imax_dens"=curr[which(volt==60)]/cm,
+                          "gmax"=fit_coef["myg"],
+                          "Vhalf"=fit_coef["myVhalf"],
+                          "k"=fit_coef["myk"]))
+
+  print(paste0("finished analysis of ",curr_cell$file))
+}
+
+sweep$genotype<-factor(sweep$genotype,levels = genotype_levels)
+patch$genotype<-factor(patch$genotype,levels = genotype_levels)
+rownames(patch)<-NULL
+
+##########
+#Select ages, if you want
+##########
+#sweep<-sweep[sweep$age<17,]
+#patch<-patch[patch$age<17,]
+
+##########
+#I-V of the peak current
+##########
+p1<-ggplot(sweep,aes(voltage,peak,group=genotype, col=genotype,fill=genotype))+
+  stat_summary(fun = mean,
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)),
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar', width = 5,size=1, position = position_dodge(width = 0.5)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path', size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
+  stat_summary(fun = mean,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = genotype_colours) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  coord_cartesian(clip = 'off')+
+  theme(legend.position = "none")+
+  xlab("voltage [mV]") + ylab("peak current [pA]")
+p1
+
+ggsave(p1,width = 4, height = 4,
+       file="IV_peak.png")
+ggsave(p1,width = 4, height = 4,
+       file="IV_peak.svg")
+
+##########
+#I-V of the current density
+##########
+p2<-ggplot(sweep,aes(voltage,peak_dens,group=genotype, col=genotype,fill=genotype))+
+  stat_summary(fun = mean,
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)),
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar', width = 5,size=1, position = position_dodge(width = 0.5)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path', size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
+  stat_summary(fun = mean,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = genotype_colours) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  coord_cartesian(clip = 'off')+
+  theme(legend.position = "none")+
+  xlab("voltage [mV]") + ylab("current density [pA/pF]")
+p2
+
+ggsave(p2,width = 4, height = 4,
+       file="IV_density.png")
+ggsave(p2,width = 4, height = 4,
+       file="IV_density.svg")
+
+##########
+#inactivation during the pulse
+##########
+p3<-ggplot(sweep[sweep$voltage>EK,],aes(voltage,inactivation,group=genotype, col=genotype,fill=genotype))+
+  stat_summary(fun = mean,
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)),
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar', width = 5,size=1, position = position_dodge(width = 0.5)) +
+  stat_summary(fun = mean, fun.min = mean, fun.max = mean,
+               geom = 'path', size=1, position = position_dodge(width = 0.5), aes(col=genotype)) +
+  stat_summary(fun = mean,
+               geom = 'point', size=5, position = position_dodge(width = 0.5),shape=17) +
+  scale_colour_manual(values = genotype_colours) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  coord_cartesian(clip = 'off')+
+  theme(legend.position = "none")+
+  xlab("voltage [mV]") + ylab("inactivation (1-Iss/Ipeak)")
+p3
+
+ggsave(p3,width = 4, height = 4,
+       file="inactivation.png")
+ggsave(p3,width = 4, height = 4,
+       file="inactivation.svg")
+
+##########
+#G-V with the mean Boltzmann parameters per genotype
+##########
+boltz<-patch %>% group_by(genotype) %>%
+  summarise(g=mean(gmax,na.rm=TRUE),Vhalf=mean(Vhalf,na.rm=TRUE),
+            k=mean(k,na.rm=TRUE),c=0)
+
+boltz_curve<-do.call(rbind,lapply(1:nrow(boltz),function(j){
+  data.frame("genotype"=boltz$genotype[j],
+             "voltage"=seq(min(volt),max(volt),length.out=200),
+             "cond_norm"=activation(boltz$g[j],boltz$Vhalf[j],boltz$k[j],boltz$c[j],
+                                    seq(min(volt),max(volt),length.out=200)))
+}))
+
+p4<-ggplot(sweep,aes(voltage,cond_norm,group=genotype, col=genotype,fill=genotype))+
+  stat_summary(fun = mean,
+               fun.min = function(x) mean(x) - sd(x)/sqrt(length(x)),
+               fun.max = function(x) mean(x) + sd(x)/sqrt(length(x)),
+               geom = 'errorbar', width = 5,size=1) +
+  stat_summary(fun = mean,
+               geom = 'point', size=4) +
+  geom_line(data=boltz_curve,aes(voltage,cond_norm,col=genotype),size=1)+
+  scale_colour_manual(values = genotype_colours) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  coord_cartesian(clip = 'off',ylim=c(0,1.1))+
+  theme(legend.position = "none")+
+  xlab("voltage [mV]") + ylab("norm. conductance")
+p4
+
+ggsave(p4,width = 4, height = 4,
+       file="GV_boltzmann.png")
+ggsave(p4,width = 4, height = 4,
+       file="GV_boltzmann.svg")
+
+##########
+#V1/2 and slope factor per patch
+##########
+p5<-ggplot(patch,aes(genotype, Vhalf,color=genotype,fill=genotype))+
+  geom_boxplot(outliers = F)+
+  geom_beeswarm(cex=2,size=4)+
+  scale_colour_manual(values = genotype_colours) +
+  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"white"))+
+  ylab("V1/2 [mV]")+
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  theme(legend.position = "none")
+p5
+
+ggsave(p5,width = 3, height = 4,
+       file="V_half.png")
+ggsave(p5,width = 3, height = 4,
+       file="V_half.svg")
+
+p6<-ggplot(patch,aes(genotype, k,color=genotype,fill=genotype))+
+  geom_boxplot(outliers = F)+
+  geom_beeswarm(cex=2,size=4)+
+  scale_colour_manual(values = genotype_colours) +
+  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"white"))+
+  ylab("slope factor k [mV]")+
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  theme(legend.position = "none")
+p6
+
+ggsave(p6,width = 3, height = 4,
+       file="slope_k.png")
+ggsave(p6,width = 3, height = 4,
+       file="slope_k.svg")
+
+##########
+#statistics
+##########
+sweep$voltage<-as.factor(sweep$voltage)
+
+model_I<-lm(peak~voltage*genotype,data= sweep)
+summary(model_I)
+anova(model_I)
+lsmeans(model_I, pairwise ~ genotype | voltage, adjust = "tukey")
+
+model_dens<-lm(peak_dens~voltage*genotype,data= sweep)
+anova(model_dens)
+lsmeans(model_dens, pairwise ~ genotype | voltage, adjust = "tukey")
+
+model_inact<-lm(inactivation~voltage*genotype,data= sweep)
+anova(model_inact)
+lsmeans(model_inact, pairwise ~ genotype | voltage, adjust = "tukey")
+
+t.test(Vhalf~genotype,data=patch)
+t.test(k~genotype,data=patch)
+
+#age effects
+vhalf.mdl<-lm(Vhalf~age*genotype,data=patch)
+anova(vhalf.mdl)
+
+p7<-ggplot(patch,aes(age,Vhalf, col=genotype,fill=genotype))+
+  geom_point(shape=16, size=4)+
+  geom_smooth(method='lm', formula= y~x)+
+  scale_colour_manual(values = genotype_colours) +
+  scale_fill_manual(values = c(rgb(191/255,191/255,1,1),"lightgrey")) +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  xlab("age [d]") + ylab("V1/2 [mV]")+
+  theme(legend.position = "none")
+p7
+
+ggsave(p7,width = 4, height = 4,
+       file="V_half_vs_age.png")
+ggsave(p7,width = 4, height = 4,
+       file="V_half_vs_age.svg")
+
+##########
+#example traces
+##########
+data1<-readABF(cells$file[1])
+ch1<-which(trimws(data1$channelNames)==channel)+1
+data11<-as.data.frame(data1,sweep=15)  #+60 mV
+data12<-as.data.frame(data1,sweep=11)  #+20 mV
+data13<-as.data.frame(data1,sweep=7)   #-20 mV
+
+p8<-ggplot(data11,aes(data11[[1]],data11[[ch1]]))+
+  geom_line()+
+  geom_line(data=data12,aes(data12[[1]],data12[[ch1]]))+
+  geom_line(data=data13,aes(data13[[1]],data13[[ch1]]))+
+  geom_segment(aes(x = 1.4, y = -50, xend = 1.6, yend = -50),lwd=2,col= "black")+
+  geom_segment(aes(x = 1.6, y = -50, xend = 1.6, yend = 50),lwd=2,col= "black") +
+  theme_prism(base_size = 14,base_family = "Calibri")+
+  theme(axis.title.x=element_blank(), axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(), axis.line=element_blank(),
+        axis.title.y=element_blank(), axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(), legend.position = "none")
+p8
+
+ggsave(p8,width = 7, height = 5,
+       file="examples_-20_20_60mV.png")
+ggsave(p8,width = 7, height = 5,
+       file="examples_-20_20_60mV.svg")
